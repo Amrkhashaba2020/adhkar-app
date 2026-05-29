@@ -36,7 +36,9 @@ export function DhikrCard({ item, onEdit }: Props) {
   const hasRecording = !!recordings[item.id];
 
   const [isRecording, setIsRecording] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     if (isRecording) {
@@ -60,6 +62,33 @@ export function DhikrCard({ item, onEdit }: Props) {
       Animated.timing(scaleAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
     ]).start();
     decrementCount(item.id);
+  };
+
+  const handlePlay = async () => {
+    if (!recordings[item.id]) return;
+    try {
+      if (isPlaying) {
+        await soundRef.current?.stopAsync();
+        await soundRef.current?.unloadAsync();
+        soundRef.current = null;
+        setIsPlaying(false);
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync({ uri: recordings[item.id] });
+      soundRef.current = sound;
+      setIsPlaying(true);
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setIsPlaying(false);
+          sound.unloadAsync();
+          soundRef.current = null;
+        }
+      });
+      await sound.playAsync();
+    } catch {
+      setIsPlaying(false);
+    }
   };
 
   const handleMic = async () => {
@@ -124,6 +153,17 @@ export function DhikrCard({ item, onEdit }: Props) {
         </Text>
 
         <View style={[styles.bottomBar, { borderTopColor: borderC }]}>
+          {/* Play button: only shown when recording exists */}
+          {hasRecording && !isRecording && (
+            <TouchableOpacity
+              onPress={handlePlay}
+              style={[styles.iconBtn, { backgroundColor: isPlaying ? primaryC + "33" : primaryC + "18" }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather name={isPlaying ? "pause" : "volume-2"} size={18} color={primaryC} />
+            </TouchableOpacity>
+          )}
+
           {/* Mic button: record / stop */}
           <Animated.View style={[styles.micRow, { transform: [{ scale: pulseAnim }] }]}>
             <TouchableOpacity
