@@ -59,7 +59,7 @@ export default function MainScreen() {
 
       <View style={[styles.segmentWrapper, { borderBottomColor: borderC }]}>
         <View style={[styles.segment, { backgroundColor: theme === "day" ? "#F5F5F5" : "#252540" }]}>
-          {(["morning", "evening"] as const).map((cat) => {
+          {(["evening", "morning"] as const).map((cat) => {
             const isActive = activeCategory === cat;
             return (
               <TouchableOpacity
