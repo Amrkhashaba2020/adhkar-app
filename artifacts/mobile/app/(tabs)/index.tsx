@@ -33,9 +33,10 @@ export default function MainScreen() {
   const mutedC = theme === "day" ? "#6B7280" : "#9CA3AF";
   const borderC = theme === "day" ? "#E0E0E0" : "#333333";
 
-  const filtered = adhkar.filter((d) => d.category === activeCategory);
-  const completedCount = filtered.filter((d) => d.currentCount === 0).length;
-  const totalCount = filtered.length;
+  const all = adhkar.filter((d) => d.category === activeCategory);
+  const filtered = all.filter((d) => d.currentCount > 0);
+  const completedCount = all.filter((d) => d.currentCount === 0).length;
+  const totalCount = all.length;
 
   const handleEdit = (item: Dhikr) => {
     setEditItem(item);

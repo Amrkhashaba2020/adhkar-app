@@ -339,7 +339,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const speakDhikr = useCallback((text: string) => {
     Speech.stop();
-    Speech.speak(text, { language: "ar" });
+    Speech.speak(text, { language: "ar", pitch: 0.75, rate: 0.9 });
   }, []);
 
   const speakAll = useCallback(() => {
@@ -363,6 +363,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : dhikr.text;
         Speech.speak(textToSpeak, {
           language: "ar",
+          pitch: 0.75,
+          rate: 0.9,
           onDone: speakNext,
           onError: speakNext,
         });
