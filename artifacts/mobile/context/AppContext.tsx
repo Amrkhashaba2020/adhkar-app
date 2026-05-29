@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
 import * as Speech from "expo-speech";
 import React, {
@@ -34,6 +35,7 @@ interface AppContextValue {
   settings: AppSettings;
   activeCategory: Category;
   isPlayingAll: boolean;
+  recordings: Record<string, string>;
   setActiveCategory: (cat: Category) => void;
   decrementCount: (id: string) => void;
   resetCategory: (category: Category) => void;
@@ -41,13 +43,16 @@ interface AppContextValue {
   editDhikr: (id: string, text: string, count: number) => void;
   deleteDhikr: (id: string) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
-  speakDhikr: (text: string) => void;
+  speakDhikr: (id: string, text: string) => void;
   speakAll: () => void;
   stopSpeaking: () => void;
+  saveRecording: (id: string, uri: string) => void;
+  deleteRecording: (id: string) => void;
 }
 
 const ADHKAR_KEY = "@adhkar_v1";
 const SETTINGS_KEY = "@settings_v1";
+const RECORDINGS_KEY = "@recordings_v1";
 
 const DEFAULT_MORNING: Dhikr[] = [
   {
@@ -208,14 +213,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeCategory, setActiveCategory] = useState<Category>("morning");
   const [isPlayingAll, setIsPlayingAll] = useState(false);
+  const [recordings, setRecordings] = useState<Record<string, string>>({});
   const speakAllRef = useRef(false);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [storedAdhkar, storedSettings] = await Promise.all([
+        const [storedAdhkar, storedSettings, storedRecordings] = await Promise.all([
           AsyncStorage.getItem(ADHKAR_KEY),
           AsyncStorage.getItem(SETTINGS_KEY),
+          AsyncStorage.getItem(RECORDINGS_KEY),
         ]);
         if (storedAdhkar) {
           setAdhkar(JSON.parse(storedAdhkar));
@@ -227,10 +235,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (storedSettings) {
           setSettings(JSON.parse(storedSettings));
         }
+        if (storedRecordings) {
+          setRecordings(JSON.parse(storedRecordings));
+        }
       } catch {
         setAdhkar([...DEFAULT_MORNING, ...DEFAULT_EVENING]);
       }
     })();
+    return () => {
+      soundRef.current?.unloadAsync();
+    };
   }, []);
 
   const saveAdhkar = useCallback(async (list: Dhikr[]) => {
@@ -337,10 +351,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [saveSettings]
   );
 
-  const speakDhikr = useCallback((text: string) => {
-    Speech.stop();
-    Speech.speak(text, { language: "ar", pitch: 0.4, rate: 0.85 });
+  const saveRecording = useCallback(async (id: string, uri: string) => {
+    setRecordings((prev) => {
+      const next = { ...prev, [id]: uri };
+      AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(next));
+      return next;
+    });
   }, []);
+
+  const deleteRecording = useCallback((id: string) => {
+    setRecordings((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const playSound = useCallback(async (uri: string, onDone?: () => void) => {
+    try {
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true },
+        (status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            onDone?.();
+          }
+        }
+      );
+      soundRef.current = sound;
+    } catch {
+      onDone?.();
+    }
+  }, []);
+
+  const speakDhikr = useCallback(
+    (id: string, text: string) => {
+      Speech.stop();
+      soundRef.current?.stopAsync();
+      const recUri = recordings[id];
+      if (recUri) {
+        playSound(recUri);
+      } else {
+        Speech.speak(text, { language: "ar", pitch: 0.4, rate: 0.85 });
+      }
+    },
+    [recordings, playSound]
+  );
 
   const speakAll = useCallback(() => {
     const list = adhkar.filter((d) => d.category === activeCategory);
@@ -357,29 +419,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (index < list.length) {
         const dhikr = list[index];
         index++;
-        const textToSpeak =
-          dhikr.maxCount > 1
-            ? Array(Math.min(dhikr.maxCount, 3)).fill(dhikr.text).join("، ")
-            : dhikr.text;
-        Speech.speak(textToSpeak, {
-          language: "ar",
-          pitch: 0.4,
-          rate: 0.85,
-          onDone: speakNext,
-          onError: speakNext,
-        });
+        const recUri = recordings[dhikr.id];
+        if (recUri) {
+          playSound(recUri, speakNext);
+        } else {
+          const textToSpeak =
+            dhikr.maxCount > 1
+              ? Array(Math.min(dhikr.maxCount, 3)).fill(dhikr.text).join("، ")
+              : dhikr.text;
+          Speech.speak(textToSpeak, {
+            language: "ar",
+            pitch: 0.4,
+            rate: 0.85,
+            onDone: speakNext,
+            onError: speakNext,
+          });
+        }
       } else {
         speakAllRef.current = false;
         setIsPlayingAll(false);
       }
     };
     speakNext();
-  }, [adhkar, activeCategory]);
+  }, [adhkar, activeCategory, recordings, playSound]);
 
   const stopSpeaking = useCallback(() => {
     speakAllRef.current = false;
     setIsPlayingAll(false);
     Speech.stop();
+    soundRef.current?.stopAsync();
   }, []);
 
   return (
@@ -389,6 +457,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         settings,
         activeCategory,
         isPlayingAll,
+        recordings,
         setActiveCategory,
         decrementCount,
         resetCategory,
@@ -399,6 +468,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         speakDhikr,
         speakAll,
         stopSpeaking,
+        saveRecording,
+        deleteRecording,
       }}
     >
       {children}

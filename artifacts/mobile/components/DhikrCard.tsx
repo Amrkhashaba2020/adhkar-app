@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import * as Speech from "expo-speech";
-import React, { useRef } from "react";
+import { Audio } from "expo-av";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Platform,
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function DhikrCard({ item, onEdit }: Props) {
-  const { settings, decrementCount, speakDhikr, deleteDhikr } = useApp();
+  const { settings, decrementCount, speakDhikr, deleteDhikr, recordings, saveRecording, deleteRecording } = useApp();
   const { theme, bgColor, fontSize } = settings;
 
   const bgC = BG_COLORS[theme][bgColor];
@@ -27,30 +27,77 @@ export function DhikrCard({ item, onEdit }: Props) {
   const textC = TEXT_COLORS[theme];
   const mutedC = theme === "day" ? "#6B7280" : "#9CA3AF";
   const primaryC = theme === "day" ? "#2E7D32" : "#4CAF50";
+  const redC = "#EF4444";
   const borderC = theme === "day" ? "#E0E0E0" : "#333333";
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
   const isDone = item.currentCount === 0;
+  const hasRecording = !!recordings[item.id];
+
+  const [isRecording, setIsRecording] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+
+  useEffect(() => {
+    if (isRecording) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.3, duration: 500, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isRecording, pulseAnim]);
 
   const handlePress = () => {
     if (isDone) return;
     Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.97,
-        duration: 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 80,
-        useNativeDriver: true,
-      }),
+      Animated.timing(scaleAnim, { toValue: 0.97, duration: 80, useNativeDriver: true }),
+      Animated.timing(scaleAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
     ]).start();
     decrementCount(item.id);
   };
 
   const handleSpeak = () => {
-    speakDhikr(item.text);
+    speakDhikr(item.id, item.text);
+  };
+
+  const handleMic = async () => {
+    if (isRecording) {
+      // Stop recording
+      try {
+        await recordingRef.current?.stopAndUnloadAsync();
+        const uri = recordingRef.current?.getURI();
+        if (uri) {
+          saveRecording(item.id, uri);
+        }
+        recordingRef.current = null;
+      } catch {}
+      setIsRecording(false);
+    } else {
+      // Start recording
+      try {
+        const { granted } = await Audio.requestPermissionsAsync();
+        if (!granted) return;
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+        });
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        recordingRef.current = recording;
+        setIsRecording(true);
+      } catch {}
+    }
+  };
+
+  const handleDeleteRecording = () => {
+    deleteRecording(item.id);
   };
 
   return (
@@ -63,16 +110,10 @@ export function DhikrCard({ item, onEdit }: Props) {
             backgroundColor: cardC,
             borderColor: isDone ? primaryC : borderC,
             borderWidth: isDone ? 1.5 : 1,
-            opacity: isDone ? 0.7 : 1,
+            opacity: isDone ? 0.65 : 1,
           },
         ]}
       >
-        {isDone && (
-          <View style={[styles.doneBadge, { backgroundColor: primaryC }]}>
-            <Feather name="check" size={12} color="#fff" />
-          </View>
-        )}
-
         <Text
           style={[
             styles.dhikrText,
@@ -87,15 +128,49 @@ export function DhikrCard({ item, onEdit }: Props) {
         </Text>
 
         <View style={[styles.bottomBar, { borderTopColor: borderC }]}>
+          {/* Speaker: plays recording if exists, else TTS */}
           <TouchableOpacity
             onPress={handleSpeak}
-            style={[styles.speakBtn, { backgroundColor: primaryC + "18" }]}
+            style={[styles.iconBtn, { backgroundColor: primaryC + "18" }]}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Feather name="volume-2" size={18} color={primaryC} />
           </TouchableOpacity>
 
+          {/* Mic button: record / stop */}
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <TouchableOpacity
+              onPress={handleMic}
+              style={[
+                styles.iconBtn,
+                {
+                  backgroundColor: isRecording
+                    ? redC + "22"
+                    : hasRecording
+                    ? primaryC + "22"
+                    : mutedC + "18",
+                },
+              ]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Feather
+                name={isRecording ? "square" : "mic"}
+                size={16}
+                color={isRecording ? redC : hasRecording ? primaryC : mutedC}
+              />
+            </TouchableOpacity>
+          </Animated.View>
+
           <View style={styles.rightActions}>
+            {hasRecording && !isRecording && (
+              <TouchableOpacity
+                onPress={handleDeleteRecording}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.actionBtn}
+              >
+                <Feather name="x-circle" size={14} color={redC} />
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => onEdit(item)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -108,7 +183,7 @@ export function DhikrCard({ item, onEdit }: Props) {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.actionBtn}
             >
-              <Feather name="trash-2" size={14} color="#EF4444" />
+              <Feather name="trash-2" size={14} color={redC} />
             </TouchableOpacity>
             {isDone ? (
               <View style={[styles.countBadge, { backgroundColor: primaryC }]}>
@@ -128,6 +203,19 @@ export function DhikrCard({ item, onEdit }: Props) {
             )}
           </View>
         </View>
+
+        {isRecording && (
+          <View style={[styles.recordingBanner, { backgroundColor: redC + "15" }]}>
+            <Feather name="mic" size={12} color={redC} />
+            <Text style={[styles.recordingText, { color: redC }]}>جارٍ التسجيل... اضغط ■ للإيقاف</Text>
+          </View>
+        )}
+        {hasRecording && !isRecording && (
+          <View style={[styles.recordingBanner, { backgroundColor: primaryC + "12" }]}>
+            <Feather name="check-circle" size={12} color={primaryC} />
+            <Text style={[styles.recordingText, { color: primaryC }]}>صوتك مسجّل • 🔊 للتشغيل</Text>
+          </View>
+        )}
       </Pressable>
     </Animated.View>
   );
@@ -139,17 +227,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
     position: "relative",
-  },
-  doneBadge: {
-    position: "absolute",
-    top: 10,
-    left: 10,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
   },
   dhikrText: {
     fontFamily: Platform.OS === "ios" ? "System" : undefined,
@@ -163,12 +240,12 @@ const styles = StyleSheet.create({
   bottomBar: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderTopWidth: 1,
   },
-  speakBtn: {
+  iconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -178,7 +255,8 @@ const styles = StyleSheet.create({
   rightActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
+    marginLeft: "auto",
   },
   actionBtn: {
     width: 28,
@@ -197,5 +275,16 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 15,
     fontWeight: "700" as const,
+  },
+  recordingBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  recordingText: {
+    fontSize: 12,
+    fontWeight: "500" as const,
   },
 });
