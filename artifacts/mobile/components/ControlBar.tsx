@@ -26,9 +26,6 @@ export function ControlBar() {
   const {
     settings,
     updateSettings,
-    isPlayingAll,
-    speakAll,
-    stopSpeaking,
     activeCategory,
     resetCategory,
   } = useApp();
@@ -92,26 +89,6 @@ export function ControlBar() {
             />
           );
         })}
-
-        <View style={[styles.divider, { backgroundColor: borderC }]} />
-
-        <TouchableOpacity
-          onPress={isPlayingAll ? stopSpeaking : speakAll}
-          style={[
-            styles.iconBtn,
-            {
-              borderColor: isPlayingAll ? primaryC : borderC,
-              backgroundColor: isPlayingAll ? primaryC + "22" : "transparent",
-            },
-          ]}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-        >
-          <Feather
-            name={isPlayingAll ? "pause" : "headphones"}
-            size={18}
-            color={isPlayingAll ? primaryC : textC}
-          />
-        </TouchableOpacity>
 
         <View style={[styles.divider, { backgroundColor: borderC }]} />
 

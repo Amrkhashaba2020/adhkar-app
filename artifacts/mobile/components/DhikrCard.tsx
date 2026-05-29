@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function DhikrCard({ item, onEdit }: Props) {
-  const { settings, decrementCount, speakDhikr, deleteDhikr, recordings, saveRecording, deleteRecording } = useApp();
+  const { settings, decrementCount, deleteDhikr, recordings, saveRecording, deleteRecording } = useApp();
   const { theme, bgColor, fontSize } = settings;
 
   const bgC = BG_COLORS[theme][bgColor];
@@ -60,10 +60,6 @@ export function DhikrCard({ item, onEdit }: Props) {
       Animated.timing(scaleAnim, { toValue: 1, duration: 80, useNativeDriver: true }),
     ]).start();
     decrementCount(item.id);
-  };
-
-  const handleSpeak = () => {
-    speakDhikr(item.id, item.text);
   };
 
   const handleMic = async () => {
@@ -128,17 +124,8 @@ export function DhikrCard({ item, onEdit }: Props) {
         </Text>
 
         <View style={[styles.bottomBar, { borderTopColor: borderC }]}>
-          {/* Speaker: plays recording if exists, else TTS */}
-          <TouchableOpacity
-            onPress={handleSpeak}
-            style={[styles.iconBtn, { backgroundColor: primaryC + "18" }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Feather name="volume-2" size={18} color={primaryC} />
-          </TouchableOpacity>
-
           {/* Mic button: record / stop */}
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+          <Animated.View style={[styles.micRow, { transform: [{ scale: pulseAnim }] }]}>
             <TouchableOpacity
               onPress={handleMic}
               style={[
@@ -159,6 +146,9 @@ export function DhikrCard({ item, onEdit }: Props) {
                 color={isRecording ? redC : hasRecording ? primaryC : mutedC}
               />
             </TouchableOpacity>
+            <Text style={[styles.micLabel, { color: isRecording ? redC : hasRecording ? primaryC : mutedC }]}>
+              {isRecording ? "اضغط للإيقاف" : "قم بقراءة الذكر بصوتك"}
+            </Text>
           </Animated.View>
 
           <View style={styles.rightActions}>
@@ -213,7 +203,7 @@ export function DhikrCard({ item, onEdit }: Props) {
         {hasRecording && !isRecording && (
           <View style={[styles.recordingBanner, { backgroundColor: primaryC + "12" }]}>
             <Feather name="check-circle" size={12} color={primaryC} />
-            <Text style={[styles.recordingText, { color: primaryC }]}>صوتك مسجّل • 🔊 للتشغيل</Text>
+            <Text style={[styles.recordingText, { color: primaryC }]}>تم تسجيل صوتك بنجاح ✓</Text>
           </View>
         )}
       </Pressable>
@@ -275,6 +265,15 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 15,
     fontWeight: "700" as const,
+  },
+  micRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  micLabel: {
+    fontSize: 12,
+    fontWeight: "500" as const,
   },
   recordingBanner: {
     flexDirection: "row",
