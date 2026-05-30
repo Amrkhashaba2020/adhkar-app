@@ -615,12 +615,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       const dhikr = list[itemIndex];
-      repeatsDone++;
-      if (repeatsDone >= dhikr.maxCount) {
-        repeatsDone = 0;
-        itemIndex++;
-      }
-      playSound(recordings[dhikr.id], playNext);
+      playSound(recordings[dhikr.id], () => {
+        if (!speakAllRef.current) {
+          setIsPlayingAll(false);
+          return;
+        }
+        // Decrement after each play
+        setAdhkar((prev) => {
+          const next = prev.map((d) => {
+            if (d.id === dhikr.id && d.currentCount > 0) {
+              return { ...d, currentCount: d.currentCount - 1 };
+            }
+            return d;
+          });
+          AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
+          return next;
+        });
+        repeatsDone++;
+        if (repeatsDone >= dhikr.maxCount) {
+          repeatsDone = 0;
+          itemIndex++;
+        }
+        playNext();
+      });
     };
     playNext();
   }, [adhkar, activeCategory, recordings, playSound]);
