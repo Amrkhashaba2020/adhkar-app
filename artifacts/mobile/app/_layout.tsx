@@ -6,6 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useKeepAwake } from "expo-keep-awake";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
@@ -29,6 +30,7 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  useKeepAwake();
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,

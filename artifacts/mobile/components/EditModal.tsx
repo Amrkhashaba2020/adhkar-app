@@ -28,7 +28,7 @@ interface Props {
 
 export function EditModal({ visible, editItem, defaultCategory, onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { settings, addDhikr, editDhikr } = useApp();
+  const { settings, addDhikr, editDhikr, deleteDhikr } = useApp();
   const { theme } = settings;
 
   const [text, setText] = useState("");
@@ -150,6 +150,19 @@ export function EditModal({ visible, editItem, defaultCategory, onClose }: Props
                 maxLength={3}
               />
 
+              {editItem && (
+                <TouchableOpacity
+                  onPress={() => {
+                    deleteDhikr(editItem.id);
+                    onClose();
+                  }}
+                  style={[styles.deleteBtn, { borderColor: "#EF4444" }]}
+                >
+                  <Feather name="trash-2" size={16} color="#EF4444" />
+                  <Text style={[styles.deleteBtnText, { color: "#EF4444" }]}>حذف الذكر</Text>
+                </TouchableOpacity>
+              )}
+
               {!editItem && (
                 <>
                   <Text style={[styles.label, { color: mutedC, marginTop: 16 }]}>
@@ -256,6 +269,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700" as const,
     height: 52,
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  deleteBtnText: {
+    fontSize: 15,
+    fontWeight: "600" as const,
   },
   categoryRow: {
     flexDirection: "row",

@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
-import * as Speech from "expo-speech";
 import React, {
   createContext,
   useCallback,
@@ -43,7 +42,6 @@ interface AppContextValue {
   editDhikr: (id: string, text: string, count: number) => void;
   deleteDhikr: (id: string) => void;
   updateSettings: (patch: Partial<AppSettings>) => void;
-  speakDhikr: (id: string, text: string) => void;
   speakAll: () => void;
   stopSpeaking: () => void;
   saveRecording: (id: string, uri: string) => void;
@@ -600,63 +598,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const speakDhikr = useCallback(
-    (id: string, text: string) => {
-      Speech.stop();
-      soundRef.current?.stopAsync();
-      const recUri = recordings[id];
-      if (recUri) {
-        playSound(recUri);
-      } else {
-        Speech.speak(text, { language: "ar", pitch: 0.4, rate: 0.85 });
-      }
-    },
-    [recordings, playSound]
-  );
-
   const speakAll = useCallback(() => {
-    const list = adhkar.filter((d) => d.category === activeCategory);
+    const list = adhkar.filter(
+      (d) => d.category === activeCategory && recordings[d.id]
+    );
     if (list.length === 0) return;
-    Speech.stop();
     speakAllRef.current = true;
     setIsPlayingAll(true);
-    let index = 0;
-    const speakNext = () => {
-      if (!speakAllRef.current) {
+    let itemIndex = 0;
+    let repeatsDone = 0;
+
+    const playNext = () => {
+      if (!speakAllRef.current || itemIndex >= list.length) {
+        speakAllRef.current = false;
         setIsPlayingAll(false);
         return;
       }
-      if (index < list.length) {
-        const dhikr = list[index];
-        index++;
-        const recUri = recordings[dhikr.id];
-        if (recUri) {
-          playSound(recUri, speakNext);
-        } else {
-          const textToSpeak =
-            dhikr.maxCount > 1
-              ? Array(Math.min(dhikr.maxCount, 3)).fill(dhikr.text).join("، ")
-              : dhikr.text;
-          Speech.speak(textToSpeak, {
-            language: "ar",
-            pitch: 0.4,
-            rate: 0.85,
-            onDone: speakNext,
-            onError: speakNext,
-          });
-        }
-      } else {
-        speakAllRef.current = false;
-        setIsPlayingAll(false);
+      const dhikr = list[itemIndex];
+      repeatsDone++;
+      if (repeatsDone >= dhikr.maxCount) {
+        repeatsDone = 0;
+        itemIndex++;
       }
+      playSound(recordings[dhikr.id], playNext);
     };
-    speakNext();
+    playNext();
   }, [adhkar, activeCategory, recordings, playSound]);
 
   const stopSpeaking = useCallback(() => {
     speakAllRef.current = false;
     setIsPlayingAll(false);
-    Speech.stop();
     soundRef.current?.stopAsync();
   }, []);
 
@@ -675,7 +646,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         editDhikr,
         deleteDhikr,
         updateSettings,
-        speakDhikr,
         speakAll,
         stopSpeaking,
         saveRecording,

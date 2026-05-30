@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "expo-av": "~15.0.2",
+    "expo-keep-awake": "^56.0.3",
     "expo-speech": "^14.0.8"
   }
 }

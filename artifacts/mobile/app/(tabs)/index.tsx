@@ -36,6 +36,7 @@ export default function MainScreen() {
   const all = adhkar.filter((d) => d.category === activeCategory);
   const filtered = all.filter((d) => d.currentCount > 0);
   const completedCount = all.filter((d) => d.currentCount === 0).length;
+  // Use all items (not just filtered) so fade-out animation plays before removal
   const totalCount = all.length;
 
   const handleEdit = (item: Dhikr) => {
@@ -98,7 +99,7 @@ export default function MainScreen() {
         )}
       </View>
 
-      {filtered.length === 0 ? (
+      {all.length === 0 ? (
         <View style={styles.empty}>
           <Feather name="book-open" size={48} color={mutedC} />
           <Text style={[styles.emptyTitle, { color: textC }]}>
@@ -110,7 +111,7 @@ export default function MainScreen() {
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={all}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <DhikrCard item={item} onEdit={handleEdit} />

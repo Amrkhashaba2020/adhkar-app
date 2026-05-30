@@ -28,6 +28,9 @@ export function ControlBar() {
     updateSettings,
     activeCategory,
     resetCategory,
+    isPlayingAll,
+    speakAll,
+    stopSpeaking,
   } = useApp();
 
   const { theme, bgColor, fontSize } = settings;
@@ -93,14 +96,34 @@ export function ControlBar() {
         <View style={[styles.divider, { backgroundColor: borderC }]} />
 
         <TouchableOpacity
+          onPress={isPlayingAll ? stopSpeaking : speakAll}
+          style={[
+            styles.iconBtn,
+            {
+              borderColor: isPlayingAll ? primaryC : borderC,
+              backgroundColor: isPlayingAll ? primaryC + "22" : "transparent",
+            },
+          ]}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <Feather
+            name={isPlayingAll ? "pause" : "headphones"}
+            size={18}
+            color={isPlayingAll ? primaryC : textC}
+          />
+        </TouchableOpacity>
+
+        <View style={[styles.divider, { backgroundColor: borderC }]} />
+
+        <TouchableOpacity
           onPress={() =>
             updateSettings({ fontSize: Math.max(14, fontSize - 2) })
           }
           style={[styles.iconBtn, { borderColor: borderC }]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Text style={[styles.fontBtnText, { color: textC, fontSize: 13 }]}>
-            ا-
+          <Text style={[styles.fontBtnText, { color: textC, fontSize: 14 }]}>
+            أ-
           </Text>
         </TouchableOpacity>
 
@@ -111,8 +134,8 @@ export function ControlBar() {
           style={[styles.iconBtn, { borderColor: borderC }]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Text style={[styles.fontBtnText, { color: textC, fontSize: 17 }]}>
-            ا+
+          <Text style={[styles.fontBtnText, { color: textC, fontSize: 18 }]}>
+            أ+
           </Text>
         </TouchableOpacity>
 

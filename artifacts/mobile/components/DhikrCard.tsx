@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { BG_COLORS, CARD_COLORS, TEXT_COLORS, useApp } from "@/context/AppContext";
+import { CARD_COLORS, TEXT_COLORS, useApp } from "@/context/AppContext";
 import type { Dhikr } from "@/context/AppContext";
 
 interface Props {
@@ -19,10 +19,9 @@ interface Props {
 }
 
 export function DhikrCard({ item, onEdit }: Props) {
-  const { settings, decrementCount, deleteDhikr, recordings, saveRecording, deleteRecording } = useApp();
+  const { settings, decrementCount, recordings, saveRecording, deleteRecording } = useApp();
   const { theme, bgColor, fontSize } = settings;
 
-  const bgC = BG_COLORS[theme][bgColor];
   const cardC = CARD_COLORS[theme][bgColor];
   const textC = TEXT_COLORS[theme];
   const mutedC = theme === "day" ? "#6B7280" : "#9CA3AF";
@@ -32,10 +31,30 @@ export function DhikrCard({ item, onEdit }: Props) {
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const isDone = item.currentCount === 0;
   const hasRecording = !!recordings[item.id];
 
+  const [hidden, setHidden] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const prevIsDoneRef = useRef(isDone);
+
+  useEffect(() => {
+    if (isDone && !prevIsDoneRef.current) {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setHidden(true);
+      });
+    } else if (!isDone) {
+      fadeAnim.setValue(1);
+      setHidden(false);
+    }
+    prevIsDoneRef.current = isDone;
+  }, [isDone, fadeAnim]);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
@@ -125,8 +144,10 @@ export function DhikrCard({ item, onEdit }: Props) {
     deleteRecording(item.id);
   };
 
+  if (hidden) return <View style={{ height: 0 }} />;
+
   return (
-    <Animated.View style={[{ transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: fadeAnim }}>
       <Pressable
         onPress={handlePress}
         style={[
@@ -208,13 +229,6 @@ export function DhikrCard({ item, onEdit }: Props) {
             >
               <Feather name="edit-2" size={14} color={mutedC} />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => deleteDhikr(item.id)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              style={styles.actionBtn}
-            >
-              <Feather name="trash-2" size={14} color={redC} />
-            </TouchableOpacity>
             {isDone ? (
               <View style={[styles.countBadge, { backgroundColor: primaryC }]}>
                 <Feather name="check" size={13} color="#fff" />
@@ -254,7 +268,7 @@ export function DhikrCard({ item, onEdit }: Props) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: 14,
-    marginBottom: 12,
+    marginBottom: 20,
     overflow: "hidden",
     position: "relative",
   },
