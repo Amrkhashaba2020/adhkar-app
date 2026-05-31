@@ -35,7 +35,7 @@ export function DhikrCard({ item, onEdit }: Props) {
   const isDone = item.currentCount === 0;
   const hasRecording = !!recordings[item.id];
 
-  const [hidden, setHidden] = useState(false);
+  const [hidden, setHidden] = useState(isDone);
   const [isRecording, setIsRecording] = useState(false);
   const prevIsDoneRef = useRef(isDone);
 
@@ -185,8 +185,6 @@ export function DhikrCard({ item, onEdit }: Props) {
     <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: fadeAnim }}>
       <Pressable
         onPress={handlePress}
-        onLongPress={() => {}}
-        delayLongPress={500}
         style={[
           styles.card,
           {
