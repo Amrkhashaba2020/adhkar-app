@@ -91,12 +91,14 @@ export function DhikrCard({ item, onEdit }: Props) {
   };
 
   const isPlayingRef = useRef(false);
+  const remainingRef = useRef(0);
 
   const handlePlay = async () => {
     if (!recordings[item.id]) return;
     try {
       if (isPlaying) {
         isPlayingRef.current = false;
+        remainingRef.current = 0;
         await soundRef.current?.stopAsync();
         await soundRef.current?.unloadAsync();
         soundRef.current = null;
@@ -104,40 +106,40 @@ export function DhikrCard({ item, onEdit }: Props) {
         return;
       }
 
-      const playOnce = async (): Promise<void> => {
-        if (!isPlayingRef.current) return;
-        if (item.currentCount <= 0) {
+      const playOnce = () => {
+        if (!isPlayingRef.current || remainingRef.current <= 0) {
           isPlayingRef.current = false;
           setIsPlaying(false);
           return;
         }
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-        return new Promise((resolve) => {
-          Audio.Sound.createAsync({ uri: recordings[item.id] }).then(({ sound }) => {
+        Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
+          .then(() => Audio.Sound.createAsync({ uri: recordings[item.id] }))
+          .then(({ sound }) => {
             soundRef.current = sound;
             sound.setOnPlaybackStatusUpdate((status) => {
               if (status.isLoaded && status.didJustFinish) {
                 sound.unloadAsync();
                 soundRef.current = null;
+                remainingRef.current -= 1;
                 decrementCount(item.id);
-                resolve();
-                if (isPlayingRef.current) {
+                if (isPlayingRef.current && remainingRef.current > 0) {
                   setTimeout(playOnce, 300);
                 } else {
+                  isPlayingRef.current = false;
                   setIsPlaying(false);
                 }
               }
             });
             sound.playAsync();
-          }).catch(() => {
+          })
+          .catch(() => {
             isPlayingRef.current = false;
             setIsPlaying(false);
-            resolve();
           });
-        });
       };
 
       isPlayingRef.current = true;
+      remainingRef.current = item.currentCount;
       setIsPlaying(true);
       playOnce();
     } catch {
