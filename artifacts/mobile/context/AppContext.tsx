@@ -574,6 +574,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saveAdhkar(next);
         return next;
       });
+      setDailyStats((prev) => {
+        const next: DailyStats = {
+          ...prev,
+          morningCount: category === "morning" ? 0 : prev.morningCount,
+          eveningCount: category === "evening" ? 0 : prev.eveningCount,
+        };
+        AsyncStorage.setItem(DAILY_STATS_KEY, JSON.stringify(next));
+        return next;
+      });
     },
     [saveAdhkar]
   );
