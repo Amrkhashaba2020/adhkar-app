@@ -152,14 +152,16 @@ export function ControlBar() {
         </View>
 
         {(todayMorning > 0 || todayEvening > 0) && (
-          <View style={styles.statsRow}>
-            <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
-            <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
-              <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
-            </View>
+          <View style={[styles.statsRow, { justifyContent: "space-between" }]}>
             <View style={[styles.statChip, { backgroundColor: "#000000", flexDirection: "row", alignItems: "center", gap: 4 }]}>
               <Icon name="moon-filled" size={12} color="#FFFFFF" />
               <Text style={[styles.statChipText, { color: "#FFFFFF" }]}>{todayEvening}</Text>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
+              <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
+                <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
+              </View>
             </View>
           </View>
         )}
