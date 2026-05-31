@@ -576,7 +576,7 @@ const DEFAULT_EVENING: Dhikr[] = [
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: "day",
-  bgColor: "white",
+  bgColor: "cream",
   fontSize: 18,
   notificationsEnabled: false,
   morningNotifHour: 6,
