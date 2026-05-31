@@ -158,10 +158,10 @@ export function ControlBar() {
               <Text style={[styles.statChipText, { color: "#FFFFFF" }]}>{todayEvening}</Text>
             </View>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
               <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
                 <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
               </View>
+              <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
             </View>
           </View>
         )}
