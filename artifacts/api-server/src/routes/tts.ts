@@ -1,37 +1,88 @@
 import { Router, type IRouter } from "express";
-import OpenAI from "openai";
 
 const router: IRouter = Router();
 
-const openai = new OpenAI({
-  apiKey: process.env["OPENAI_API_KEY"],
-});
+const memCache = new Map<string, Buffer>();
 
-router.post("/tts", async (req, res) => {
+router.get("/tts", async (req, res) => {
   try {
-    const { text } = req.body as { text?: string };
-    if (!text || typeof text !== "string" || text.trim().length === 0) {
+    const text = typeof req.query["text"] === "string" ? req.query["text"].trim() : "";
+    if (!text) {
       res.status(400).json({ error: "text is required" });
       return;
     }
 
-    const mp3 = await openai.audio.speech.create({
-      model: "tts-1",
-      voice: "onyx",
-      input: text.trim(),
-      response_format: "mp3",
-      speed: 0.85,
-    });
+    if (memCache.has(text)) {
+      const cached = memCache.get(text)!;
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Content-Length", cached.length);
+      res.setHeader("Cache-Control", "public, max-age=604800");
+      res.send(cached);
+      return;
+    }
 
-    const buffer = Buffer.from(await mp3.arrayBuffer());
+    const chunks = splitText(text, 180);
+    const buffers: Buffer[] = [];
+
+    for (const chunk of chunks) {
+      const url =
+        `https://translate.google.com/translate_tts` +
+        `?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=ar&client=tw-ob&ttsspeed=0.85`;
+
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Referer": "https://translate.google.com/",
+          "Accept": "audio/mpeg,audio/*",
+        },
+      });
+
+      if (!resp.ok) {
+        res.status(502).json({ error: `upstream TTS ${resp.status}` });
+        return;
+      }
+
+      buffers.push(Buffer.from(await resp.arrayBuffer()));
+    }
+
+    const combined = Buffer.concat(buffers);
+
+    if (memCache.size > 200) {
+      const firstKey = memCache.keys().next().value;
+      if (firstKey !== undefined) memCache.delete(firstKey);
+    }
+    memCache.set(text, combined);
+
     res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Content-Length", buffer.length);
-    res.setHeader("Cache-Control", "public, max-age=86400");
-    res.send(buffer);
+    res.setHeader("Content-Length", combined.length);
+    res.setHeader("Cache-Control", "public, max-age=604800");
+    res.send(combined);
   } catch (err) {
     req.log?.error({ err }, "TTS error");
     res.status(500).json({ error: "TTS failed" });
   }
 });
+
+function splitText(text: string, maxLen: number): string[] {
+  if (text.length <= maxLen) return [text];
+  const parts: string[] = [];
+  const separators = /[،,؛;.\n]/;
+  let remaining = text;
+  while (remaining.length > maxLen) {
+    let idx = -1;
+    for (let i = maxLen; i >= 20; i--) {
+      if (separators.test(remaining[i] ?? "")) {
+        idx = i + 1;
+        break;
+      }
+    }
+    if (idx === -1) idx = maxLen;
+    parts.push(remaining.slice(0, idx).trim());
+    remaining = remaining.slice(idx).trim();
+  }
+  if (remaining) parts.push(remaining);
+  return parts.filter(Boolean);
+}
 
 export default router;

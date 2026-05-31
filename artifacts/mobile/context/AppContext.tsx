@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
-import * as Speech from "expo-speech";
 import React, {
   createContext,
   useCallback,
@@ -11,6 +10,8 @@ import React, {
   useState,
 } from "react";
 import { Platform } from "react-native";
+
+const TTS_BASE = `https://${process.env["EXPO_PUBLIC_DOMAIN"]}/api/tts`;
 
 export type Category = "morning" | "evening";
 export type ThemeMode = "day" | "night";
@@ -653,28 +654,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     soundRef.current?.stopAsync();
   }, []);
 
-  const speakDhikr = useCallback((id: string, text: string) => {
+  const ttsSoundRef = useRef<Audio.Sound | null>(null);
+
+  const speakDhikr = useCallback(async (id: string, text: string) => {
     if (speakingId === id) {
-      Speech.stop();
+      await ttsSoundRef.current?.stopAsync();
+      await ttsSoundRef.current?.unloadAsync();
+      ttsSoundRef.current = null;
       setSpeakingId(null);
       return;
     }
-    Speech.stop();
+    if (ttsSoundRef.current) {
+      await ttsSoundRef.current.stopAsync();
+      await ttsSoundRef.current.unloadAsync();
+      ttsSoundRef.current = null;
+    }
     setSpeakingId(id);
-    const iosVoice = Platform.OS === "ios" ? "com.apple.ttsbundle.Maged-compact" : undefined;
-    Speech.speak(text, {
-      language: "ar-SA",
-      voice: iosVoice,
-      rate: Platform.OS === "ios" ? 0.48 : 0.82,
-      pitch: 0.88,
-      onDone: () => setSpeakingId(null),
-      onStopped: () => setSpeakingId(null),
-      onError: () => setSpeakingId(null),
-    });
+    try {
+      const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
+        { shouldPlay: true },
+        (status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            ttsSoundRef.current?.unloadAsync();
+            ttsSoundRef.current = null;
+            setSpeakingId(null);
+          }
+        }
+      );
+      ttsSoundRef.current = sound;
+    } catch {
+      setSpeakingId(null);
+    }
   }, [speakingId]);
 
-  const stopDhikrSpeech = useCallback(() => {
-    Speech.stop();
+  const stopDhikrSpeech = useCallback(async () => {
+    await ttsSoundRef.current?.stopAsync();
+    await ttsSoundRef.current?.unloadAsync();
+    ttsSoundRef.current = null;
     setSpeakingId(null);
   }, []);
 
