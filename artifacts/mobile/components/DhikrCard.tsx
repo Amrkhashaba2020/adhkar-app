@@ -41,6 +41,13 @@ export function DhikrCard({ item, onEdit }: Props) {
 
   useEffect(() => {
     if (isDone && !prevIsDoneRef.current) {
+      // Stop any ongoing playback for this card
+      isPlayingRef.current = false;
+      if (soundRef.current) {
+        soundRef.current.stopAsync().then(() => soundRef.current?.unloadAsync());
+        soundRef.current = null;
+      }
+      setIsPlaying(false);
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 600,
