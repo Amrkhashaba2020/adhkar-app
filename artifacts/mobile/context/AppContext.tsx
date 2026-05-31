@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
-import { File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 import React, {
   createContext,
   useCallback,
@@ -11,8 +11,6 @@ import React, {
   useState,
 } from "react";
 import { Platform } from "react-native";
-
-const TTS_URL = `https://${process.env["EXPO_PUBLIC_DOMAIN"]}/api/tts`;
 
 export type Category = "morning" | "evening";
 export type ThemeMode = "day" | "night";
@@ -655,65 +653,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     soundRef.current?.stopAsync();
   }, []);
 
-  const ttsCache = useRef<Record<string, string>>({});
-  const ttsSoundRef = useRef<Audio.Sound | null>(null);
-
-  const speakDhikr = useCallback(async (id: string, text: string) => {
+  const speakDhikr = useCallback((id: string, text: string) => {
     if (speakingId === id) {
-      await ttsSoundRef.current?.stopAsync();
-      await ttsSoundRef.current?.unloadAsync();
-      ttsSoundRef.current = null;
+      Speech.stop();
       setSpeakingId(null);
       return;
     }
-    if (ttsSoundRef.current) {
-      await ttsSoundRef.current.stopAsync();
-      await ttsSoundRef.current.unloadAsync();
-      ttsSoundRef.current = null;
-    }
+    Speech.stop();
     setSpeakingId(id);
-    try {
-      let uri = ttsCache.current[id];
-      if (!uri) {
-        const file = new File(Paths.cache, `tts_${id}.mp3`);
-        if (!file.exists) {
-          const resp = await fetch(TTS_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
-          });
-          if (!resp.ok) throw new Error(`TTS ${resp.status}`);
-          const arrayBuf = await resp.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuf);
-          let binary = "";
-          bytes.forEach((b) => { binary += String.fromCharCode(b); });
-          const b64 = btoa(binary);
-          await file.write(b64, { encoding: "base64" } as Parameters<typeof file.write>[1]);
-        }
-        uri = file.uri;
-        ttsCache.current[id] = uri;
-      }
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true },
-        (status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            ttsSoundRef.current?.unloadAsync();
-            ttsSoundRef.current = null;
-            setSpeakingId(null);
-          }
-        }
-      );
-      ttsSoundRef.current = sound;
-    } catch {
-      setSpeakingId(null);
-    }
+    const iosVoice = Platform.OS === "ios" ? "com.apple.ttsbundle.Maged-compact" : undefined;
+    Speech.speak(text, {
+      language: "ar-SA",
+      voice: iosVoice,
+      rate: Platform.OS === "ios" ? 0.48 : 0.82,
+      pitch: 0.88,
+      onDone: () => setSpeakingId(null),
+      onStopped: () => setSpeakingId(null),
+      onError: () => setSpeakingId(null),
+    });
   }, [speakingId]);
 
-  const stopDhikrSpeech = useCallback(async () => {
-    await ttsSoundRef.current?.stopAsync();
-    await ttsSoundRef.current?.unloadAsync();
-    ttsSoundRef.current = null;
+  const stopDhikrSpeech = useCallback(() => {
+    Speech.stop();
     setSpeakingId(null);
   }, []);
 
