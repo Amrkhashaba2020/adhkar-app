@@ -1,16 +1,74 @@
 import { Router, type IRouter } from "express";
+import { spawn } from "child_process";
 
 const router: IRouter = Router();
-
 const memCache = new Map<string, Buffer>();
+
+async function googleTTS(text: string): Promise<Buffer> {
+  const chunk = text.slice(0, 180);
+  const url =
+    `https://translate.google.com/translate_tts` +
+    `?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=ar&client=tw-ob&ttsspeed=0.82`;
+
+  const resp = await fetch(url, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Referer": "https://translate.google.com/",
+    },
+  });
+  if (!resp.ok) throw new Error(`Google TTS ${resp.status}`);
+  return Buffer.from(await resp.arrayBuffer());
+}
+
+async function splitAndFetch(text: string): Promise<Buffer> {
+  const maxLen = 180;
+  if (text.length <= maxLen) return googleTTS(text);
+
+  const parts: string[] = [];
+  const sep = /[،,؛;.\n]/;
+  let rem = text;
+  while (rem.length > maxLen) {
+    let idx = -1;
+    for (let i = maxLen; i >= 20; i--) {
+      if (sep.test(rem[i] ?? "")) { idx = i + 1; break; }
+    }
+    if (idx === -1) idx = maxLen;
+    parts.push(rem.slice(0, idx).trim());
+    rem = rem.slice(idx).trim();
+  }
+  if (rem) parts.push(rem);
+
+  const bufs = await Promise.all(parts.filter(Boolean).map(googleTTS));
+  return Buffer.concat(bufs);
+}
+
+function pitchShiftToMale(input: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    // Lower pitch by ~5 semitones: factor ≈ 0.75
+    // asetrate lowers pitch, aresample fixes rate, atempo corrects speed
+    const ff = spawn("ffmpeg", [
+      "-f", "mp3", "-i", "pipe:0",
+      "-af", "asetrate=24000*0.75,aresample=24000,atempo=1.333",
+      "-codec:a", "libmp3lame", "-q:a", "3",
+      "-f", "mp3", "pipe:1",
+    ]);
+
+    const chunks: Buffer[] = [];
+    ff.stdout.on("data", (d: Buffer) => chunks.push(d));
+    ff.stdout.on("end", () => resolve(Buffer.concat(chunks)));
+    ff.stderr.on("data", () => {});
+    ff.on("error", reject);
+    ff.stdin.write(input);
+    ff.stdin.end();
+  });
+}
 
 router.get("/tts", async (req, res) => {
   try {
     const text = typeof req.query["text"] === "string" ? req.query["text"].trim() : "";
-    if (!text) {
-      res.status(400).json({ error: "text is required" });
-      return;
-    }
+    if (!text) { res.status(400).json({ error: "text is required" }); return; }
 
     if (memCache.has(text)) {
       const cached = memCache.get(text)!;
@@ -21,68 +79,23 @@ router.get("/tts", async (req, res) => {
       return;
     }
 
-    const chunks = splitText(text, 180);
-    const buffers: Buffer[] = [];
+    const raw = await splitAndFetch(text);
+    const audio = await pitchShiftToMale(raw);
 
-    for (const chunk of chunks) {
-      const url =
-        `https://translate.google.com/translate_tts` +
-        `?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=ar&client=tw-ob&ttsspeed=0.85`;
-
-      const resp = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-          "Referer": "https://translate.google.com/",
-          "Accept": "audio/mpeg,audio/*",
-        },
-      });
-
-      if (!resp.ok) {
-        res.status(502).json({ error: `upstream TTS ${resp.status}` });
-        return;
-      }
-
-      buffers.push(Buffer.from(await resp.arrayBuffer()));
+    if (memCache.size > 300) {
+      const key = memCache.keys().next().value;
+      if (key !== undefined) memCache.delete(key);
     }
-
-    const combined = Buffer.concat(buffers);
-
-    if (memCache.size > 200) {
-      const firstKey = memCache.keys().next().value;
-      if (firstKey !== undefined) memCache.delete(firstKey);
-    }
-    memCache.set(text, combined);
+    memCache.set(text, audio);
 
     res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Content-Length", combined.length);
+    res.setHeader("Content-Length", audio.length);
     res.setHeader("Cache-Control", "public, max-age=604800");
-    res.send(combined);
+    res.send(audio);
   } catch (err) {
     req.log?.error({ err }, "TTS error");
     res.status(500).json({ error: "TTS failed" });
   }
 });
-
-function splitText(text: string, maxLen: number): string[] {
-  if (text.length <= maxLen) return [text];
-  const parts: string[] = [];
-  const separators = /[،,؛;.\n]/;
-  let remaining = text;
-  while (remaining.length > maxLen) {
-    let idx = -1;
-    for (let i = maxLen; i >= 20; i--) {
-      if (separators.test(remaining[i] ?? "")) {
-        idx = i + 1;
-        break;
-      }
-    }
-    if (idx === -1) idx = maxLen;
-    parts.push(remaining.slice(0, idx).trim());
-    remaining = remaining.slice(idx).trim();
-  }
-  if (remaining) parts.push(remaining);
-  return parts.filter(Boolean);
-}
 
 export default router;
