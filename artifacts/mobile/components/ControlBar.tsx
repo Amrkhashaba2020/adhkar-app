@@ -118,7 +118,7 @@ export function ControlBar() {
           style={[styles.iconBtn, { borderColor: borderC }]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Text style={[styles.fontBtnText, { color: textC, fontSize: 14 }]}>
+          <Text style={[styles.fontBtnText, { color: textC, fontSize: 18 }]}>
             ء
           </Text>
         </TouchableOpacity>
@@ -130,7 +130,7 @@ export function ControlBar() {
           style={[styles.iconBtn, { borderColor: borderC }]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Text style={[styles.fontBtnText, { color: textC, fontSize: 18 }]}>
+          <Text style={[styles.fontBtnText, { color: textC, fontSize: 22 }]}>
             أ
           </Text>
         </TouchableOpacity>
