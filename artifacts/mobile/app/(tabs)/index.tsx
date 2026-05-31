@@ -35,8 +35,6 @@ export default function MainScreen() {
 
   const all = adhkar.filter((d) => d.category === activeCategory);
   const filtered = all.filter((d) => d.currentCount > 0);
-  const completedCount = all.filter((d) => d.currentCount === 0).length;
-  const totalCount = all.length;
 
   const handleEdit = (item: Dhikr) => {
     setEditItem(item);
@@ -91,11 +89,6 @@ export default function MainScreen() {
           })}
         </View>
 
-        {totalCount > 0 && (
-          <Text style={[styles.progress, { color: mutedC }]}>
-            {theme === "day" ? "☀️ " : ""}{completedCount}/{totalCount}
-          </Text>
-        )}
       </View>
 
       {all.length === 0 ? (
