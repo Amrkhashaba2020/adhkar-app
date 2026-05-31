@@ -185,6 +185,8 @@ export function DhikrCard({ item, onEdit }: Props) {
     <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: fadeAnim }}>
       <Pressable
         onPress={handlePress}
+        onLongPress={() => {}}
+        delayLongPress={500}
         style={[
           styles.card,
           {
@@ -196,6 +198,7 @@ export function DhikrCard({ item, onEdit }: Props) {
         ]}
       >
         <Text
+          selectable={false}
           style={[
             styles.dhikrText,
             {
