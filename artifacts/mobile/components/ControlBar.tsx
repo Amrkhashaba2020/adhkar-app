@@ -119,7 +119,7 @@ export function ControlBar() {
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
           <Text style={[styles.fontBtnText, { color: textC, fontSize: 18 }]}>
-            ء
+            ع
           </Text>
         </TouchableOpacity>
 
@@ -131,7 +131,7 @@ export function ControlBar() {
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
           <Text style={[styles.fontBtnText, { color: textC, fontSize: 28 }]}>
-            ء
+            ع
           </Text>
         </TouchableOpacity>
 
