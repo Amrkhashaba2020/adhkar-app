@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
+import * as Notifications from "expo-notifications";
 import React, {
   createContext,
   useCallback,
@@ -29,6 +30,17 @@ export interface AppSettings {
   theme: ThemeMode;
   bgColor: BgColorKey;
   fontSize: number;
+  notificationsEnabled: boolean;
+  morningNotifHour: number;
+  morningNotifMinute: number;
+  eveningNotifHour: number;
+  eveningNotifMinute: number;
+}
+
+export interface DailyStats {
+  date: string;
+  morningCount: number;
+  eveningCount: number;
 }
 
 interface AppContextValue {
@@ -38,6 +50,7 @@ interface AppContextValue {
   isPlayingAll: boolean;
   recordings: Record<string, string>;
   speakingId: string | null;
+  dailyStats: DailyStats;
   setActiveCategory: (cat: Category) => void;
   decrementCount: (id: string) => void;
   resetCategory: (category: Category) => void;
@@ -51,11 +64,23 @@ interface AppContextValue {
   stopDhikrSpeech: () => void;
   saveRecording: (id: string, uri: string) => void;
   deleteRecording: (id: string) => void;
+  scheduleNotifications: (s: AppSettings) => Promise<void>;
 }
 
 const ADHKAR_KEY = "@adhkar_v2";
 const SETTINGS_KEY = "@settings_v1";
 const RECORDINGS_KEY = "@recordings_v1";
+const DAILY_STATS_KEY = "@daily_stats_v1";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 const DEFAULT_MORNING: Dhikr[] = [
   {
@@ -417,7 +442,16 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: "day",
   bgColor: "white",
   fontSize: 18,
+  notificationsEnabled: false,
+  morningNotifHour: 6,
+  morningNotifMinute: 0,
+  eveningNotifHour: 18,
+  eveningNotifMinute: 0,
 };
+
+function todayString() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 const AppContext = createContext<AppContextValue | null>(null);
 
@@ -428,17 +462,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isPlayingAll, setIsPlayingAll] = useState(false);
   const [recordings, setRecordings] = useState<Record<string, string>>({});
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [dailyStats, setDailyStats] = useState<DailyStats>({
+    date: todayString(),
+    morningCount: 0,
+    eveningCount: 0,
+  });
+
   const speakAllRef = useRef(false);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const ttsSoundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     (async () => {
       try {
-        const [storedAdhkar, storedSettings, storedRecordings] = await Promise.all([
-          AsyncStorage.getItem(ADHKAR_KEY),
-          AsyncStorage.getItem(SETTINGS_KEY),
-          AsyncStorage.getItem(RECORDINGS_KEY),
-        ]);
+        const [storedAdhkar, storedSettings, storedRecordings, storedStats] =
+          await Promise.all([
+            AsyncStorage.getItem(ADHKAR_KEY),
+            AsyncStorage.getItem(SETTINGS_KEY),
+            AsyncStorage.getItem(RECORDINGS_KEY),
+            AsyncStorage.getItem(DAILY_STATS_KEY),
+          ]);
         if (storedAdhkar) {
           setAdhkar(JSON.parse(storedAdhkar));
         } else {
@@ -447,10 +490,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           await AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(defaults));
         }
         if (storedSettings) {
-          setSettings(JSON.parse(storedSettings));
+          setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(storedSettings) });
         }
         if (storedRecordings) {
           setRecordings(JSON.parse(storedRecordings));
+        }
+        if (storedStats) {
+          const parsed: DailyStats = JSON.parse(storedStats);
+          if (parsed.date === todayString()) {
+            setDailyStats(parsed);
+          } else {
+            const fresh = { date: todayString(), morningCount: 0, eveningCount: 0 };
+            setDailyStats(fresh);
+            await AsyncStorage.setItem(DAILY_STATS_KEY, JSON.stringify(fresh));
+          }
         }
       } catch {
         setAdhkar([...DEFAULT_MORNING, ...DEFAULT_EVENING]);
@@ -473,9 +526,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
+  const incrementDailyStats = useCallback((category: Category) => {
+    setDailyStats((prev) => {
+      const today = todayString();
+      const base = prev.date === today ? prev : { date: today, morningCount: 0, eveningCount: 0 };
+      const next: DailyStats = {
+        ...base,
+        morningCount: category === "morning" ? base.morningCount + 1 : base.morningCount,
+        eveningCount: category === "evening" ? base.eveningCount + 1 : base.eveningCount,
+      };
+      AsyncStorage.setItem(DAILY_STATS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const decrementCount = useCallback(
     (id: string) => {
       setAdhkar((prev) => {
+        const item = prev.find((d) => d.id === id);
+        if (!item || item.currentCount <= 0) return prev;
         const next = prev.map((d) => {
           if (d.id === id && d.currentCount > 0) {
             return { ...d, currentCount: d.currentCount - 1 };
@@ -483,13 +552,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return d;
         });
         saveAdhkar(next);
+        incrementDailyStats(item.category);
         return next;
       });
       if (Platform.OS !== "web") {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     },
-    [saveAdhkar]
+    [saveAdhkar, incrementDailyStats]
   );
 
   const resetCategory = useCallback(
@@ -511,13 +581,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addDhikr = useCallback(
     (text: string, count: number, category: Category) => {
       const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-      const newDhikr: Dhikr = {
-        id,
-        text,
-        maxCount: count,
-        currentCount: count,
-        category,
-      };
+      const newDhikr: Dhikr = { id, text, maxCount: count, currentCount: count, category };
       setAdhkar((prev) => {
         const next = [...prev, newDhikr];
         saveAdhkar(next);
@@ -531,9 +595,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (id: string, text: string, count: number) => {
       setAdhkar((prev) => {
         const next = prev.map((d) => {
-          if (d.id === id) {
-            return { ...d, text, maxCount: count, currentCount: count };
-          }
+          if (d.id === id) return { ...d, text, maxCount: count, currentCount: count };
           return d;
         });
         saveAdhkar(next);
@@ -554,15 +616,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [saveAdhkar]
   );
 
+  const scheduleNotifications = useCallback(async (s: AppSettings) => {
+    if (Platform.OS === "web") return;
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    if (!s.notificationsEnabled) return;
+    await Notifications.requestPermissionsAsync();
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "أذكار الصباح 🌅",
+        body: "حان وقت أذكار الصباح، لا تنسَ ذكر الله",
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: s.morningNotifHour,
+        minute: s.morningNotifMinute,
+      },
+    });
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "أذكار المساء 🌙",
+        body: "حان وقت أذكار المساء، اذكر الله قبل النوم",
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: s.eveningNotifHour,
+        minute: s.eveningNotifMinute,
+      },
+    });
+  }, []);
+
   const updateSettings = useCallback(
     (patch: Partial<AppSettings>) => {
       setSettings((prev) => {
         const next = { ...prev, ...patch };
         saveSettings(next);
+        if (
+          "notificationsEnabled" in patch ||
+          "morningNotifHour" in patch ||
+          "morningNotifMinute" in patch ||
+          "eveningNotifHour" in patch ||
+          "eveningNotifMinute" in patch
+        ) {
+          scheduleNotifications(next);
+        }
         return next;
       });
     },
-    [saveSettings]
+    [saveSettings, scheduleNotifications]
   );
 
   const saveRecording = useCallback(async (id: string, uri: string) => {
@@ -604,49 +708,85 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const adhkarRef = useRef(adhkar);
+  adhkarRef.current = adhkar;
+
   const speakAll = useCallback(() => {
-    const list = adhkar.filter(
-      (d) => d.category === activeCategory && recordings[d.id]
+    const list = adhkarRef.current.filter(
+      (d) => d.category === activeCategory && d.currentCount > 0
     );
     if (list.length === 0) return;
     speakAllRef.current = true;
     setIsPlayingAll(true);
+
     let itemIndex = 0;
-    let repeatsDone = 0;
 
     const playNext = () => {
-      if (!speakAllRef.current || itemIndex >= list.length) {
+      if (!speakAllRef.current) {
+        setIsPlayingAll(false);
+        return;
+      }
+      if (itemIndex >= list.length) {
         speakAllRef.current = false;
         setIsPlayingAll(false);
         return;
       }
+
       const dhikr = list[itemIndex];
-      playSound(recordings[dhikr.id], () => {
-        if (!speakAllRef.current) {
-          setIsPlayingAll(false);
-          return;
-        }
-        // Decrement after each play
-        setAdhkar((prev) => {
-          const next = prev.map((d) => {
-            if (d.id === dhikr.id && d.currentCount > 0) {
-              return { ...d, currentCount: d.currentCount - 1 };
-            }
-            return d;
+
+      const hasRecording = !!recordings[dhikr.id];
+
+      if (hasRecording) {
+        playSound(recordings[dhikr.id], () => {
+          if (!speakAllRef.current) { setIsPlayingAll(false); return; }
+          setAdhkar((prev) => {
+            const next = prev.map((d) =>
+              d.id === dhikr.id && d.currentCount > 0
+                ? { ...d, currentCount: d.currentCount - 1 }
+                : d
+            );
+            AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
+            return next;
           });
-          AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
-          return next;
-        });
-        repeatsDone++;
-        if (repeatsDone >= dhikr.maxCount) {
-          repeatsDone = 0;
+          incrementDailyStats(dhikr.category);
           itemIndex++;
-        }
-        playNext();
-      });
+          setTimeout(playNext, 400);
+        });
+      } else {
+        const uri = `${TTS_BASE}?text=${encodeURIComponent(dhikr.text)}`;
+        Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
+          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: true }))
+          .then(({ sound }) => {
+            soundRef.current = sound;
+            sound.setOnPlaybackStatusUpdate((status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                sound.unloadAsync();
+                soundRef.current = null;
+                if (!speakAllRef.current) { setIsPlayingAll(false); return; }
+                setAdhkar((prev) => {
+                  const next = prev.map((d) =>
+                    d.id === dhikr.id && d.currentCount > 0
+                      ? { ...d, currentCount: d.currentCount - 1 }
+                      : d
+                  );
+                  AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
+                  return next;
+                });
+                incrementDailyStats(dhikr.category);
+                itemIndex++;
+                setTimeout(playNext, 400);
+              }
+            });
+          })
+          .catch(() => {
+            itemIndex++;
+            playNext();
+          });
+      }
     };
+
     playNext();
-  }, [adhkar, activeCategory, recordings, playSound]);
+  }, [activeCategory, recordings, playSound, incrementDailyStats]);
 
   const stopSpeaking = useCallback(() => {
     speakAllRef.current = false;
@@ -654,41 +794,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     soundRef.current?.stopAsync();
   }, []);
 
-  const ttsSoundRef = useRef<Audio.Sound | null>(null);
-
-  const speakDhikr = useCallback(async (id: string, text: string) => {
-    if (speakingId === id) {
-      await ttsSoundRef.current?.stopAsync();
-      await ttsSoundRef.current?.unloadAsync();
-      ttsSoundRef.current = null;
-      setSpeakingId(null);
-      return;
-    }
-    if (ttsSoundRef.current) {
-      await ttsSoundRef.current.stopAsync();
-      await ttsSoundRef.current.unloadAsync();
-      ttsSoundRef.current = null;
-    }
-    setSpeakingId(id);
-    try {
-      const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true },
-        (status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            ttsSoundRef.current?.unloadAsync();
-            ttsSoundRef.current = null;
-            setSpeakingId(null);
+  const speakDhikr = useCallback(
+    async (id: string, text: string) => {
+      if (speakingId === id) {
+        await ttsSoundRef.current?.stopAsync();
+        await ttsSoundRef.current?.unloadAsync();
+        ttsSoundRef.current = null;
+        setSpeakingId(null);
+        return;
+      }
+      if (ttsSoundRef.current) {
+        await ttsSoundRef.current.stopAsync();
+        await ttsSoundRef.current.unloadAsync();
+        ttsSoundRef.current = null;
+      }
+      setSpeakingId(id);
+      try {
+        const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+        const { sound } = await Audio.Sound.createAsync(
+          { uri },
+          { shouldPlay: true },
+          (status) => {
+            if (status.isLoaded && status.didJustFinish) {
+              ttsSoundRef.current?.unloadAsync();
+              ttsSoundRef.current = null;
+              setSpeakingId(null);
+            }
           }
-        }
-      );
-      ttsSoundRef.current = sound;
-    } catch {
-      setSpeakingId(null);
-    }
-  }, [speakingId]);
+        );
+        ttsSoundRef.current = sound;
+      } catch {
+        setSpeakingId(null);
+      }
+    },
+    [speakingId]
+  );
 
   const stopDhikrSpeech = useCallback(async () => {
     await ttsSoundRef.current?.stopAsync();
@@ -706,6 +847,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isPlayingAll,
         recordings,
         speakingId,
+        dailyStats,
         setActiveCategory,
         decrementCount,
         resetCategory,
@@ -719,6 +861,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         stopDhikrSpeech,
         saveRecording,
         deleteRecording,
+        scheduleNotifications,
       }}
     >
       {children}
@@ -734,31 +877,31 @@ export function useApp(): AppContextValue {
 
 export const BG_COLORS: Record<string, Record<BgColorKey, string>> = {
   day: {
-    white: "#FFFFFF",
+    white: "#FAFAFA",
     cream: "#FEF9EF",
     mint: "#F0F9F0",
   },
   night: {
-    white: "#1A1A2E",
-    cream: "#1E1A10",
-    mint: "#0F1F0F",
+    white: "#0F1117",
+    cream: "#1A150A",
+    mint: "#081208",
   },
 };
 
 export const TEXT_COLORS: Record<string, string> = {
   day: "#1A1A1A",
-  night: "#F0EFE8",
+  night: "#EEE8D5",
 };
 
 export const CARD_COLORS: Record<string, Record<BgColorKey, string>> = {
   day: {
-    white: "#F8F8F8",
+    white: "#FFFFFF",
     cream: "#FBF3E0",
     mint: "#E8F5E8",
   },
   night: {
-    white: "#252540",
-    cream: "#2A2418",
-    mint: "#162816",
+    white: "#1C1F2E",
+    cream: "#221C0E",
+    mint: "#0E1F0E",
   },
 };
