@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import { Audio } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { CARD_COLORS, TEXT_COLORS, useApp } from "@/context/AppContext";
 import type { Dhikr } from "@/context/AppContext";
+import { Icon } from "@/components/Icon";
 
 interface Props {
   item: Dhikr;
@@ -39,10 +39,16 @@ export function DhikrCard({ item, onEdit }: Props) {
   const [isRecording, setIsRecording] = useState(false);
   const prevIsDoneRef = useRef(isDone);
 
+  const [isPlaying, setIsPlaying] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const isPlayingRef = useRef(false);
+  const remainingRef = useRef(0);
+
   useEffect(() => {
     if (isDone && !prevIsDoneRef.current) {
-      // Stop any ongoing playback for this card
       isPlayingRef.current = false;
+      remainingRef.current = 0;
       if (soundRef.current) {
         soundRef.current.stopAsync().then(() => soundRef.current?.unloadAsync());
         soundRef.current = null;
@@ -61,10 +67,6 @@ export function DhikrCard({ item, onEdit }: Props) {
     }
     prevIsDoneRef.current = isDone;
   }, [isDone, fadeAnim]);
-
-  const [isPlaying, setIsPlaying] = useState(false);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
 
   useEffect(() => {
     if (isRecording) {
@@ -89,9 +91,6 @@ export function DhikrCard({ item, onEdit }: Props) {
     ]).start();
     decrementCount(item.id);
   };
-
-  const isPlayingRef = useRef(false);
-  const remainingRef = useRef(0);
 
   const handlePlay = async () => {
     if (!recordings[item.id]) return;
@@ -150,7 +149,6 @@ export function DhikrCard({ item, onEdit }: Props) {
 
   const handleMic = async () => {
     if (isRecording) {
-      // Stop recording
       try {
         await recordingRef.current?.stopAndUnloadAsync();
         const uri = recordingRef.current?.getURI();
@@ -161,7 +159,6 @@ export function DhikrCard({ item, onEdit }: Props) {
       } catch {}
       setIsRecording(false);
     } else {
-      // Start recording
       try {
         const { granted } = await Audio.requestPermissionsAsync();
         if (!granted) return;
@@ -212,18 +209,16 @@ export function DhikrCard({ item, onEdit }: Props) {
         </Text>
 
         <View style={[styles.bottomBar, { borderTopColor: borderC }]}>
-          {/* Play button: only shown when recording exists */}
           {hasRecording && !isRecording && (
             <TouchableOpacity
               onPress={handlePlay}
               style={[styles.iconBtn, { backgroundColor: isPlaying ? primaryC + "33" : primaryC + "18" }]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather name={isPlaying ? "pause" : "volume-2"} size={18} color={primaryC} />
+              <Icon name={isPlaying ? "pause" : "volume-2"} size={18} color={primaryC} />
             </TouchableOpacity>
           )}
 
-          {/* Mic button: record / stop */}
           <Animated.View style={[styles.micRow, { transform: [{ scale: pulseAnim }] }]}>
             <TouchableOpacity
               onPress={handleMic}
@@ -239,7 +234,7 @@ export function DhikrCard({ item, onEdit }: Props) {
               ]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather
+              <Icon
                 name={isRecording ? "square" : "mic"}
                 size={16}
                 color={isRecording ? redC : hasRecording ? primaryC : mutedC}
@@ -257,7 +252,7 @@ export function DhikrCard({ item, onEdit }: Props) {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 style={styles.actionBtn}
               >
-                <Feather name="x-circle" size={14} color={redC} />
+                <Icon name="x-circle" size={14} color={redC} />
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -265,11 +260,11 @@ export function DhikrCard({ item, onEdit }: Props) {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.actionBtn}
             >
-              <Feather name="edit-2" size={14} color={mutedC} />
+              <Icon name="edit-2" size={14} color={mutedC} />
             </TouchableOpacity>
             {isDone ? (
               <View style={[styles.countBadge, { backgroundColor: primaryC }]}>
-                <Feather name="check" size={13} color="#fff" />
+                <Icon name="check" size={13} color="#fff" />
               </View>
             ) : (
               <View
@@ -288,13 +283,13 @@ export function DhikrCard({ item, onEdit }: Props) {
 
         {isRecording && (
           <View style={[styles.recordingBanner, { backgroundColor: redC + "15" }]}>
-            <Feather name="mic" size={12} color={redC} />
+            <Icon name="mic" size={12} color={redC} />
             <Text style={[styles.recordingText, { color: redC }]}>جارٍ التسجيل... اضغط ■ للإيقاف</Text>
           </View>
         )}
         {hasRecording && !isRecording && (
           <View style={[styles.recordingBanner, { backgroundColor: primaryC + "12" }]}>
-            <Feather name="check-circle" size={12} color={primaryC} />
+            <Icon name="check-circle" size={12} color={primaryC} />
             <Text style={[styles.recordingText, { color: primaryC }]}>تم تسجيل صوتك بنجاح ✓</Text>
           </View>
         )}

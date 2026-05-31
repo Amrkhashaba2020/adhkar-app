@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -12,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ControlBar } from "@/components/ControlBar";
 import { DhikrCard } from "@/components/DhikrCard";
 import { EditModal } from "@/components/EditModal";
+import { Icon } from "@/components/Icon";
 import {
   BG_COLORS,
   TEXT_COLORS,
@@ -36,7 +36,6 @@ export default function MainScreen() {
   const all = adhkar.filter((d) => d.category === activeCategory);
   const filtered = all.filter((d) => d.currentCount > 0);
   const completedCount = all.filter((d) => d.currentCount === 0).length;
-  // Use all items (not just filtered) so fade-out animation plays before removal
   const totalCount = all.length;
 
   const handleEdit = (item: Dhikr) => {
@@ -101,7 +100,7 @@ export default function MainScreen() {
 
       {all.length === 0 ? (
         <View style={styles.empty}>
-          <Feather name="book-open" size={48} color={mutedC} />
+          <Icon name="book-open" size={48} color={mutedC} />
           <Text style={[styles.emptyTitle, { color: textC }]}>
             لا توجد أذكار
           </Text>
@@ -130,7 +129,7 @@ export default function MainScreen() {
         onPress={handleAdd}
         activeOpacity={0.85}
       >
-        <Feather name="plus" size={26} color="#fff" />
+        <Icon name="plus" size={26} color="#fff" />
       </TouchableOpacity>
 
       <EditModal

@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import React from "react";
 import {
   Platform,
@@ -14,6 +13,7 @@ import {
   useApp,
   type BgColorKey,
 } from "@/context/AppContext";
+import { Icon } from "@/components/Icon";
 
 const COLOR_OPTIONS: { key: BgColorKey; dayColor: string; label: string }[] = [
   { key: "white", dayColor: "#FFFFFF", label: "أبيض" },
@@ -62,11 +62,7 @@ export function ControlBar() {
           style={[styles.iconBtn, { borderColor: borderC }]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Feather
-            name={theme === "day" ? "moon" : "sun"}
-            size={18}
-            color={textC}
-          />
+          <Icon name={theme === "day" ? "moon" : "sun"} size={18} color={textC} />
         </TouchableOpacity>
 
         <View style={[styles.divider, { backgroundColor: borderC }]} />
@@ -106,7 +102,7 @@ export function ControlBar() {
           ]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Feather
+          <Icon
             name={isPlayingAll ? "pause" : "headphones"}
             size={18}
             color={isPlayingAll ? primaryC : textC}
@@ -146,7 +142,7 @@ export function ControlBar() {
           style={[styles.iconBtn, { borderColor: borderC }]}
           hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
         >
-          <Feather name="refresh-cw" size={16} color={mutedC} />
+          <Icon name="refresh-cw" size={16} color={mutedC} />
         </TouchableOpacity>
       </View>
     </View>

@@ -1,4 +1,3 @@
-import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -18,6 +17,7 @@ import {
   type Category,
   type Dhikr,
 } from "@/context/AppContext";
+import { Icon } from "@/components/Icon";
 
 interface Props {
   visible: boolean;
@@ -92,7 +92,7 @@ export function EditModal({ visible, editItem, defaultCategory, onClose }: Props
           >
             <View style={[styles.header, { borderBottomColor: borderC }]}>
               <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="x" size={22} color={mutedC} />
+                <Icon name="x" size={22} color={mutedC} />
               </TouchableOpacity>
               <Text style={[styles.title, { color: textC }]}>
                 {editItem ? "تعديل الذكر" : "إضافة ذكر جديد"}
@@ -158,7 +158,7 @@ export function EditModal({ visible, editItem, defaultCategory, onClose }: Props
                   }}
                   style={[styles.deleteBtn, { borderColor: "#EF4444" }]}
                 >
-                  <Feather name="trash-2" size={16} color="#EF4444" />
+                  <Icon name="trash-2" size={16} color="#EF4444" />
                   <Text style={[styles.deleteBtnText, { color: "#EF4444" }]}>حذف الذكر</Text>
                 </TouchableOpacity>
               )}
