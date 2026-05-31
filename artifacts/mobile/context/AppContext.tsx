@@ -60,7 +60,7 @@ interface AppContextValue {
   updateSettings: (patch: Partial<AppSettings>) => void;
   speakAll: () => void;
   stopSpeaking: () => void;
-  speakDhikr: (id: string, text: string) => void;
+  speakDhikr: (id: string, text: string, count?: number) => void;
   stopDhikrSpeech: () => void;
   saveRecording: (id: string, uri: string) => void;
   deleteRecording: (id: string) => void;
@@ -794,44 +794,82 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     soundRef.current?.stopAsync();
   }, []);
 
+  const ttsLoopRef = useRef(false);
+
   const speakDhikr = useCallback(
-    async (id: string, text: string) => {
+    async (id: string, text: string, count?: number) => {
       if (speakingId === id) {
+        ttsLoopRef.current = false;
         await ttsSoundRef.current?.stopAsync();
         await ttsSoundRef.current?.unloadAsync();
         ttsSoundRef.current = null;
         setSpeakingId(null);
         return;
       }
+      ttsLoopRef.current = false;
       if (ttsSoundRef.current) {
         await ttsSoundRef.current.stopAsync();
         await ttsSoundRef.current.unloadAsync();
         ttsSoundRef.current = null;
       }
+
+      const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
+      const remaining = { value: count ?? 1 };
+
       setSpeakingId(id);
-      try {
-        const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-        const { sound } = await Audio.Sound.createAsync(
-          { uri },
-          { shouldPlay: true },
-          (status) => {
-            if (status.isLoaded && status.didJustFinish) {
-              ttsSoundRef.current?.unloadAsync();
-              ttsSoundRef.current = null;
-              setSpeakingId(null);
-            }
-          }
-        );
-        ttsSoundRef.current = sound;
-      } catch {
-        setSpeakingId(null);
-      }
+      ttsLoopRef.current = true;
+
+      const playOnce = () => {
+        if (!ttsLoopRef.current || remaining.value <= 0) {
+          ttsLoopRef.current = false;
+          setSpeakingId(null);
+          return;
+        }
+        Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
+          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: true }))
+          .then(({ sound }) => {
+            ttsSoundRef.current = sound;
+            sound.setOnPlaybackStatusUpdate((status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                sound.unloadAsync();
+                ttsSoundRef.current = null;
+                if (!ttsLoopRef.current) { setSpeakingId(null); return; }
+                if (count !== undefined) {
+                  setAdhkar((prev) => {
+                    const next = prev.map((d) =>
+                      d.id === id && d.currentCount > 0
+                        ? { ...d, currentCount: d.currentCount - 1 }
+                        : d
+                    );
+                    AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
+                    return next;
+                  });
+                  const item = adhkarRef.current.find((d) => d.id === id);
+                  if (item) incrementDailyStats(item.category);
+                }
+                remaining.value -= 1;
+                if (remaining.value > 0 && ttsLoopRef.current) {
+                  setTimeout(playOnce, 300);
+                } else {
+                  ttsLoopRef.current = false;
+                  setSpeakingId(null);
+                }
+              }
+            });
+          })
+          .catch(() => {
+            ttsLoopRef.current = false;
+            setSpeakingId(null);
+          });
+      };
+
+      playOnce();
     },
-    [speakingId]
+    [speakingId, incrementDailyStats]
   );
 
   const stopDhikrSpeech = useCallback(async () => {
+    ttsLoopRef.current = false;
     await ttsSoundRef.current?.stopAsync();
     await ttsSoundRef.current?.unloadAsync();
     ttsSoundRef.current = null;
