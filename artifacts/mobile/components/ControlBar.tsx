@@ -157,8 +157,8 @@ export function ControlBar() {
             <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
               <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
             </View>
-            <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
-              <Text style={[styles.statChipText, { color: primaryC }]}>🌙 {todayEvening}</Text>
+            <View style={[styles.statChip, { backgroundColor: "#F59E0B18" }]}>
+              <Text style={[styles.statChipText, { color: "#F59E0B" }]}>☽ {todayEvening}</Text>
             </View>
           </View>
         )}
@@ -289,9 +289,9 @@ export function ControlBar() {
                     <Text style={[styles.statNumber, { color: primaryC }]}>{dailyStats.morningCount}</Text>
                     <Text style={[styles.statName, { color: mutedC }]}>أذكار الصباح</Text>
                   </View>
-                  <View style={[styles.statCard, { backgroundColor: primaryC + "14", borderColor: primaryC + "30" }]}>
-                    <Text style={styles.statEmoji}>🌙</Text>
-                    <Text style={[styles.statNumber, { color: primaryC }]}>{dailyStats.eveningCount}</Text>
+                  <View style={[styles.statCard, { backgroundColor: "#F59E0B14", borderColor: "#F59E0B30" }]}>
+                    <Text style={[styles.statEmoji, { color: "#F59E0B" }]}>☽</Text>
+                    <Text style={[styles.statNumber, { color: "#F59E0B" }]}>{dailyStats.eveningCount}</Text>
                     <Text style={[styles.statName, { color: mutedC }]}>أذكار المساء</Text>
                   </View>
                   <View style={[styles.statCard, { backgroundColor: primaryC + "14", borderColor: primaryC + "30" }]}>
