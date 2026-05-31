@@ -155,7 +155,7 @@ export function ControlBar() {
           <View style={styles.statsRow}>
             <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
             <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
-              <Text style={[styles.statChipText, { color: primaryC }]}>🌅 {todayMorning}</Text>
+              <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
             </View>
             <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
               <Text style={[styles.statChipText, { color: primaryC }]}>🌙 {todayEvening}</Text>
@@ -285,7 +285,7 @@ export function ControlBar() {
                 <Text style={[styles.sectionTitle, { color: mutedC }]}>إحصائيات اليوم</Text>
                 <View style={styles.statsGrid}>
                   <View style={[styles.statCard, { backgroundColor: primaryC + "14", borderColor: primaryC + "30" }]}>
-                    <Text style={styles.statEmoji}>🌅</Text>
+                    <Text style={styles.statEmoji}>☀️</Text>
                     <Text style={[styles.statNumber, { color: primaryC }]}>{dailyStats.morningCount}</Text>
                     <Text style={[styles.statName, { color: mutedC }]}>أذكار الصباح</Text>
                   </View>
