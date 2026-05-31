@@ -93,7 +93,7 @@ export default function MainScreen() {
 
         {totalCount > 0 && (
           <Text style={[styles.progress, { color: mutedC }]}>
-            {completedCount}/{totalCount}
+            {theme === "day" ? "☀️ " : ""}{completedCount}/{totalCount}
           </Text>
         )}
       </View>
