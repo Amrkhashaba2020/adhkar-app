@@ -151,18 +151,21 @@ export function ControlBar() {
           </TouchableOpacity>
         </View>
 
-        {(todayMorning > 0 || todayEvening > 0) && (
-          <View style={[styles.statsRow, { justifyContent: "space-between" }]}>
+        {activeCategory === "morning" && todayMorning > 0 && (
+          <View style={[styles.statsRow, { justifyContent: "flex-end" }]}>
+            <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
+              <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
+            </View>
+            <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
+          </View>
+        )}
+        {activeCategory === "evening" && todayEvening > 0 && (
+          <View style={[styles.statsRow, { justifyContent: "flex-start" }]}>
             <View style={[styles.statChip, { backgroundColor: "#000000", flexDirection: "row", alignItems: "center", gap: 4 }]}>
               <Icon name="moon-filled" size={12} color="#FFFFFF" />
               <Text style={[styles.statChipText, { color: "#FFFFFF" }]}>{todayEvening}</Text>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
-                <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
-              </View>
-              <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
-            </View>
+            <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
           </View>
         )}
       </View>
