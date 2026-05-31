@@ -158,7 +158,7 @@ export function ControlBar() {
               <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
             </View>
             <View style={[styles.statChip, { backgroundColor: "#F59E0B18", flexDirection: "row", alignItems: "center", gap: 4 }]}>
-              <Icon name="moon" size={12} color="#F59E0B" />
+              <Icon name="moon-filled" size={12} color="#F59E0B" />
               <Text style={[styles.statChipText, { color: "#F59E0B" }]}>{todayEvening}</Text>
             </View>
           </View>
@@ -291,7 +291,7 @@ export function ControlBar() {
                     <Text style={[styles.statName, { color: mutedC }]}>أذكار الصباح</Text>
                   </View>
                   <View style={[styles.statCard, { backgroundColor: "#F59E0B14", borderColor: "#F59E0B30" }]}>
-                    <Icon name="moon" size={28} color="#F59E0B" />
+                    <Icon name="moon-filled" size={28} color="#F59E0B" />
                     <Text style={[styles.statNumber, { color: "#F59E0B" }]}>{dailyStats.eveningCount}</Text>
                     <Text style={[styles.statName, { color: mutedC }]}>أذكار المساء</Text>
                   </View>

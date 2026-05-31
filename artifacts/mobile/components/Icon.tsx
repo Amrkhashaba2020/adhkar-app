@@ -14,6 +14,7 @@ interface IconProps {
 }
 
 export type IconName =
+  | "moon-filled"
   | "moon"
   | "sun"
   | "headphones"
@@ -39,6 +40,13 @@ export function Icon({ name, size = 24, color = "#000" }: IconProps) {
   const s = { stroke: color, strokeWidth: "2", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
 
   switch (name) {
+    case "moon-filled":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Path fill={color} stroke="none" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </Svg>
+      );
+
     case "moon":
       return (
         <Svg width={size} height={size} viewBox="0 0 24 24">
