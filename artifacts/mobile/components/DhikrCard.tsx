@@ -210,14 +210,16 @@ export function DhikrCard({ item, onEdit }: Props) {
         </Text>
 
         <View style={[styles.bottomBar, { borderTopColor: borderC }]}>
-          {/* TTS button */}
-          <TouchableOpacity
-            onPress={() => speakDhikr(item.id, item.text, item.currentCount)}
-            style={[styles.iconBtn, { backgroundColor: speakingId === item.id ? primaryC + "33" : mutedC + "18" }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="speaker" size={18} color={speakingId === item.id ? primaryC : mutedC} />
-          </TouchableOpacity>
+          {/* TTS button — hidden for Quran verses */}
+          {!item.isQuran && (
+            <TouchableOpacity
+              onPress={() => speakDhikr(item.id, item.text, item.currentCount)}
+              style={[styles.iconBtn, { backgroundColor: speakingId === item.id ? primaryC + "33" : mutedC + "18" }]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Icon name="speaker" size={18} color={speakingId === item.id ? primaryC : mutedC} />
+            </TouchableOpacity>
+          )}
 
           {hasRecording && !isRecording && (
             <TouchableOpacity

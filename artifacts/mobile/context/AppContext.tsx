@@ -24,6 +24,7 @@ export interface Dhikr {
   maxCount: number;
   currentCount: number;
   category: Category;
+  isQuran?: boolean;
 }
 
 export interface AppSettings {
@@ -67,7 +68,7 @@ interface AppContextValue {
   scheduleNotifications: (s: AppSettings) => Promise<void>;
 }
 
-const ADHKAR_KEY = "@adhkar_v8";
+const ADHKAR_KEY = "@adhkar_v9";
 const SETTINGS_KEY = "@settings_v1";
 const RECORDINGS_KEY = "@recordings_v1";
 const DAILY_STATS_KEY = "@daily_stats_v1";
@@ -89,6 +90,7 @@ const DEFAULT_MORNING: Dhikr[] = [
     maxCount: 1,
     currentCount: 1,
     category: "morning",
+    isQuran: true,
   },
   {
     id: "m2",
@@ -96,6 +98,7 @@ const DEFAULT_MORNING: Dhikr[] = [
     maxCount: 3,
     currentCount: 3,
     category: "morning",
+    isQuran: true,
   },
   {
     id: "m3",
@@ -103,6 +106,7 @@ const DEFAULT_MORNING: Dhikr[] = [
     maxCount: 3,
     currentCount: 3,
     category: "morning",
+    isQuran: true,
   },
   {
     id: "m4",
@@ -110,6 +114,7 @@ const DEFAULT_MORNING: Dhikr[] = [
     maxCount: 3,
     currentCount: 3,
     category: "morning",
+    isQuran: true,
   },
   {
     id: "m5",
@@ -386,6 +391,7 @@ const DEFAULT_EVENING: Dhikr[] = [
     maxCount: 1,
     currentCount: 1,
     category: "evening",
+    isQuran: true,
   },
   {
     id: "e2",
@@ -393,6 +399,7 @@ const DEFAULT_EVENING: Dhikr[] = [
     maxCount: 1,
     currentCount: 1,
     category: "evening",
+    isQuran: true,
   },
   {
     id: "e3",
@@ -400,6 +407,7 @@ const DEFAULT_EVENING: Dhikr[] = [
     maxCount: 3,
     currentCount: 3,
     category: "evening",
+    isQuran: true,
   },
   {
     id: "e4",
@@ -407,6 +415,7 @@ const DEFAULT_EVENING: Dhikr[] = [
     maxCount: 3,
     currentCount: 3,
     category: "evening",
+    isQuran: true,
   },
   {
     id: "e5",
@@ -414,6 +423,7 @@ const DEFAULT_EVENING: Dhikr[] = [
     maxCount: 3,
     currentCount: 3,
     category: "evening",
+    isQuran: true,
   },
   {
     id: "e6",
