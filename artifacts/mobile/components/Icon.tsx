@@ -29,7 +29,8 @@ export type IconName =
   | "x"
   | "trash-2"
   | "plus"
-  | "book-open";
+  | "book-open"
+  | "speaker";
 
 export function Icon({ name, size = 24, color = "#000" }: IconProps) {
   const s = { stroke: color, strokeWidth: "2", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
@@ -170,6 +171,14 @@ export function Icon({ name, size = 24, color = "#000" }: IconProps) {
         <Svg width={size} height={size} viewBox="0 0 24 24">
           <Path {...s} d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
           <Path {...s} d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </Svg>
+      );
+
+    case "speaker":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Polygon points="11,5 6,9 2,9 2,15 6,15 11,19" fill={color} stroke={color} strokeWidth="1" strokeLinejoin="round" />
+          <Path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
         </Svg>
       );
 

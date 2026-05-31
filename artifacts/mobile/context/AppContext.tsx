@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 import React, {
   createContext,
   useCallback,
@@ -35,6 +36,7 @@ interface AppContextValue {
   activeCategory: Category;
   isPlayingAll: boolean;
   recordings: Record<string, string>;
+  speakingId: string | null;
   setActiveCategory: (cat: Category) => void;
   decrementCount: (id: string) => void;
   resetCategory: (category: Category) => void;
@@ -44,6 +46,8 @@ interface AppContextValue {
   updateSettings: (patch: Partial<AppSettings>) => void;
   speakAll: () => void;
   stopSpeaking: () => void;
+  speakDhikr: (id: string, text: string) => void;
+  stopDhikrSpeech: () => void;
   saveRecording: (id: string, uri: string) => void;
   deleteRecording: (id: string) => void;
 }
@@ -422,6 +426,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeCategory, setActiveCategory] = useState<Category>("morning");
   const [isPlayingAll, setIsPlayingAll] = useState(false);
   const [recordings, setRecordings] = useState<Record<string, string>>({});
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const speakAllRef = useRef(false);
   const soundRef = useRef<Audio.Sound | null>(null);
 
@@ -648,6 +653,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     soundRef.current?.stopAsync();
   }, []);
 
+  const speakDhikr = useCallback((id: string, text: string) => {
+    Speech.stop();
+    if (speakingId === id) {
+      setSpeakingId(null);
+      return;
+    }
+    setSpeakingId(id);
+    Speech.speak(text, {
+      language: "ar-SA",
+      rate: Platform.OS === "ios" ? 0.5 : 0.85,
+      pitch: 0.9,
+      onDone: () => setSpeakingId(null),
+      onStopped: () => setSpeakingId(null),
+      onError: () => setSpeakingId(null),
+    });
+  }, [speakingId]);
+
+  const stopDhikrSpeech = useCallback(() => {
+    Speech.stop();
+    setSpeakingId(null);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -656,6 +683,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         activeCategory,
         isPlayingAll,
         recordings,
+        speakingId,
         setActiveCategory,
         decrementCount,
         resetCategory,
@@ -665,6 +693,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateSettings,
         speakAll,
         stopSpeaking,
+        speakDhikr,
+        stopDhikrSpeech,
         saveRecording,
         deleteRecording,
       }}

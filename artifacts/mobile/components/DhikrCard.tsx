@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function DhikrCard({ item, onEdit }: Props) {
-  const { settings, decrementCount, recordings, saveRecording, deleteRecording } = useApp();
+  const { settings, decrementCount, recordings, saveRecording, deleteRecording, speakDhikr, speakingId } = useApp();
   const { theme, bgColor, fontSize } = settings;
 
   const cardC = CARD_COLORS[theme][bgColor];
@@ -209,6 +209,15 @@ export function DhikrCard({ item, onEdit }: Props) {
         </Text>
 
         <View style={[styles.bottomBar, { borderTopColor: borderC }]}>
+          {/* TTS button */}
+          <TouchableOpacity
+            onPress={() => speakDhikr(item.id, item.text)}
+            style={[styles.iconBtn, { backgroundColor: speakingId === item.id ? primaryC + "33" : mutedC + "18" }]}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Icon name="speaker" size={18} color={speakingId === item.id ? primaryC : mutedC} />
+          </TouchableOpacity>
+
           {hasRecording && !isRecording && (
             <TouchableOpacity
               onPress={handlePlay}
