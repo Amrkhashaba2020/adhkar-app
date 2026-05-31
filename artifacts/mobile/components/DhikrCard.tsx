@@ -83,29 +83,58 @@ export function DhikrCard({ item, onEdit }: Props) {
     decrementCount(item.id);
   };
 
+  const isPlayingRef = useRef(false);
+
   const handlePlay = async () => {
     if (!recordings[item.id]) return;
     try {
       if (isPlaying) {
+        isPlayingRef.current = false;
         await soundRef.current?.stopAsync();
         await soundRef.current?.unloadAsync();
         soundRef.current = null;
         setIsPlaying(false);
         return;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-      const { sound } = await Audio.Sound.createAsync({ uri: recordings[item.id] });
-      soundRef.current = sound;
-      setIsPlaying(true);
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+
+      const playOnce = async (): Promise<void> => {
+        if (!isPlayingRef.current) return;
+        if (item.currentCount <= 0) {
+          isPlayingRef.current = false;
           setIsPlaying(false);
-          sound.unloadAsync();
-          soundRef.current = null;
+          return;
         }
-      });
-      await sound.playAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+        return new Promise((resolve) => {
+          Audio.Sound.createAsync({ uri: recordings[item.id] }).then(({ sound }) => {
+            soundRef.current = sound;
+            sound.setOnPlaybackStatusUpdate((status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                sound.unloadAsync();
+                soundRef.current = null;
+                decrementCount(item.id);
+                resolve();
+                if (isPlayingRef.current) {
+                  setTimeout(playOnce, 300);
+                } else {
+                  setIsPlaying(false);
+                }
+              }
+            });
+            sound.playAsync();
+          }).catch(() => {
+            isPlayingRef.current = false;
+            setIsPlaying(false);
+            resolve();
+          });
+        });
+      };
+
+      isPlayingRef.current = true;
+      setIsPlaying(true);
+      playOnce();
     } catch {
+      isPlayingRef.current = false;
       setIsPlaying(false);
     }
   };
