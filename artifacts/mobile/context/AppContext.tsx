@@ -55,6 +55,7 @@ interface AppContextValue {
   setActiveCategory: (cat: Category) => void;
   decrementCount: (id: string) => void;
   resetCategory: (category: Category) => void;
+  categoryResetKey: number;
   addDhikr: (text: string, count: number, category: Category) => void;
   editDhikr: (id: string, text: string, count: number) => void;
   deleteDhikr: (id: string) => void;
@@ -731,6 +732,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isPlayingAll, setIsPlayingAll] = useState(false);
   const [recordings, setRecordings] = useState<Record<string, string>>({});
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [categoryResetKey, setCategoryResetKey] = useState(0);
   const [dailyStats, setDailyStats] = useState<DailyStats>({
     date: todayString(),
     morningCount: 0,
@@ -833,6 +835,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const resetCategory = useCallback(
     (category: Category) => {
+      setCategoryResetKey((k) => k + 1);
       setAdhkar((prev) => {
         const next = prev.map((d) => {
           if (d.category === category) {
@@ -1169,6 +1172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setActiveCategory,
         decrementCount,
         resetCategory,
+        categoryResetKey,
         addDhikr,
         editDhikr,
         deleteDhikr,

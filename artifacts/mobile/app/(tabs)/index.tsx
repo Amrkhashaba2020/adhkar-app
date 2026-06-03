@@ -21,7 +21,7 @@ import {
 
 export default function MainScreen() {
   const insets = useSafeAreaInsets();
-  const { adhkar, settings, activeCategory, setActiveCategory } = useApp();
+  const { adhkar, settings, activeCategory, setActiveCategory, categoryResetKey } = useApp();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editItem, setEditItem] = useState<Dhikr | null>(null);
@@ -48,6 +48,16 @@ export default function MainScreen() {
     setFadedIds(new Set());
     cardYRef.current.clear();
   }, [activeCategory]);
+
+  useEffect(() => {
+    if (categoryResetKey === 0) return;
+    fadedIdsRef.current = new Set();
+    setFadedIds(new Set());
+    cardYRef.current.clear();
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+    }, 50);
+  }, [categoryResetKey]);
 
   const handleFadeComplete = useCallback((id: string) => {
     // Capture the completed card's Y — the next card will land exactly here
