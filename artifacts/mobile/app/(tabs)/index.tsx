@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FlatList,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -38,46 +38,33 @@ export default function MainScreen() {
   const displayList = all.filter((d) => !fadedIds.has(d.id));
   const filtered = displayList.filter((d) => d.currentCount > 0);
 
-  const flatListRef = useRef<FlatList<Dhikr>>(null);
-  const pendingScrollIndexRef = useRef<number | null>(null);
-  const allRef = useRef(all);
-  allRef.current = all;
+  const scrollViewRef = useRef<ScrollView>(null);
+  // Stores the Y offset of each card relative to ScrollView content
+  const cardYRef = useRef<Map<string, number>>(new Map());
+  const fadedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    fadedIdsRef.current = new Set();
     setFadedIds(new Set());
-    pendingScrollIndexRef.current = null;
+    cardYRef.current.clear();
   }, [activeCategory]);
 
   const handleFadeComplete = useCallback((id: string) => {
+    // Capture the completed card's Y — the next card will land exactly here
+    const scrollY = cardYRef.current.get(id) ?? 0;
+
+    fadedIdsRef.current.add(id);
     setFadedIds((prev) => {
-      const prevDisplay = allRef.current.filter((d) => !prev.has(d.id));
-      const completedIdx = prevDisplay.findIndex((d) => d.id === id);
-      // After removing the completed card, the next card slides into completedIdx
-      pendingScrollIndexRef.current = completedIdx;
       const next = new Set(prev);
       next.add(id);
       return next;
     });
-  }, []);
 
-  useEffect(() => {
-    const targetIdx = pendingScrollIndexRef.current;
-    if (targetIdx === null) return;
-    pendingScrollIndexRef.current = null;
+    // After state update + layout, scroll to where the completed card was
     setTimeout(() => {
-      if (targetIdx >= 0) {
-        try {
-          flatListRef.current?.scrollToIndex({
-            index: targetIdx,
-            animated: true,
-            viewPosition: 0,
-          });
-        } catch {
-          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-        }
-      }
-    }, 80);
-  }, [fadedIds]);
+      scrollViewRef.current?.scrollTo({ y: scrollY, animated: true });
+    }, 60);
+  }, []);
 
   const handleEdit = (item: Dhikr) => {
     setEditItem(item);
@@ -131,7 +118,6 @@ export default function MainScreen() {
             );
           })}
         </View>
-
       </View>
 
       {all.length === 0 ? (
@@ -145,20 +131,27 @@ export default function MainScreen() {
           </Text>
         </View>
       ) : (
-        <FlatList
-          ref={flatListRef}
-          data={displayList}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <DhikrCard item={item} onEdit={handleEdit} onFadeComplete={handleFadeComplete} />
-          )}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: bottomPad },
-          ]}
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
           showsVerticalScrollIndicator={false}
           scrollEnabled={!!filtered.length}
-        />
+        >
+          {displayList.map((item) => (
+            <View
+              key={item.id}
+              onLayout={(e) => {
+                cardYRef.current.set(item.id, e.nativeEvent.layout.y);
+              }}
+            >
+              <DhikrCard
+                item={item}
+                onEdit={handleEdit}
+                onFadeComplete={handleFadeComplete}
+              />
+            </View>
+          ))}
+        </ScrollView>
       )}
 
       <TouchableOpacity
@@ -207,13 +200,9 @@ const styles = StyleSheet.create({
   segBtnTextActive: {
     fontWeight: "700" as const,
   },
-  progress: {
-    fontSize: 12,
-    textAlign: "right",
-    marginTop: 6,
-  },
   list: {
     padding: 16,
+    gap: 16,
   },
   empty: {
     flex: 1,
