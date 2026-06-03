@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -25,6 +25,7 @@ export default function MainScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editItem, setEditItem] = useState<Dhikr | null>(null);
+  const [fadedIds, setFadedIds] = useState<Set<string>>(new Set());
 
   const { theme, bgColor } = settings;
   const bgC = BG_COLORS[theme][bgColor];
@@ -34,25 +35,25 @@ export default function MainScreen() {
   const borderC = theme === "day" ? "#E0E0E0" : "#333333";
 
   const all = adhkar.filter((d) => d.category === activeCategory);
-  const filtered = all.filter((d) => d.currentCount > 0);
+  const displayList = all.filter((d) => !fadedIds.has(d.id));
+  const filtered = displayList.filter((d) => d.currentCount > 0);
 
   const flatListRef = useRef<FlatList<Dhikr>>(null);
-  const prevFilteredLenRef = useRef(filtered.length);
-  const prevCategoryRef = useRef(activeCategory);
 
   useEffect(() => {
-    if (prevCategoryRef.current !== activeCategory) {
-      prevCategoryRef.current = activeCategory;
-      prevFilteredLenRef.current = filtered.length;
-      return;
-    }
-    if (filtered.length < prevFilteredLenRef.current && filtered.length > 0) {
-      setTimeout(() => {
-        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-      }, 700);
-    }
-    prevFilteredLenRef.current = filtered.length;
-  }, [filtered.length, activeCategory]);
+    setFadedIds(new Set());
+  }, [activeCategory]);
+
+  const handleFadeComplete = useCallback((id: string) => {
+    setFadedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setTimeout(() => {
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+    }, 50);
+  }, []);
 
   const handleEdit = (item: Dhikr) => {
     setEditItem(item);
@@ -122,10 +123,10 @@ export default function MainScreen() {
       ) : (
         <FlatList
           ref={flatListRef}
-          data={all}
+          data={displayList}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <DhikrCard item={item} onEdit={handleEdit} />
+            <DhikrCard item={item} onEdit={handleEdit} onFadeComplete={handleFadeComplete} />
           )}
           contentContainerStyle={[
             styles.list,
@@ -133,7 +134,6 @@ export default function MainScreen() {
           ]}
           showsVerticalScrollIndicator={false}
           scrollEnabled={!!filtered.length}
-          onScrollToIndexFailed={() => {}}
         />
       )}
 

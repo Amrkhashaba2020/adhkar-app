@@ -16,9 +16,10 @@ import { Icon } from "@/components/Icon";
 interface Props {
   item: Dhikr;
   onEdit: (item: Dhikr) => void;
+  onFadeComplete?: (id: string) => void;
 }
 
-export function DhikrCard({ item, onEdit }: Props) {
+export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
   const { settings, decrementCount, recordings, saveRecording, deleteRecording, speakDhikr, speakingId } = useApp();
   const { theme, bgColor, fontSize } = settings;
 
@@ -59,7 +60,10 @@ export function DhikrCard({ item, onEdit }: Props) {
         duration: 600,
         useNativeDriver: true,
       }).start(({ finished }) => {
-        if (finished) setHidden(true);
+        if (finished) {
+          setHidden(true);
+          onFadeComplete?.(item.id);
+        }
       });
     } else if (!isDone) {
       fadeAnim.setValue(1);
