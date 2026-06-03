@@ -51,7 +51,7 @@ export function ControlBar() {
   const modalBg = theme === "day" ? "#FFFFFF" : "#131520";
   const sectionBg = theme === "day" ? "#F9FAFB" : "#1C1F2E";
 
-  const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
+  const topPad = Platform.OS === "web" ? Math.max(insets.top, 8) : insets.top;
 
 
   const todayMorning = dailyStats.morningCount;

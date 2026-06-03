@@ -37,25 +37,22 @@ export default function MainScreen() {
   const filtered = all.filter((d) => d.currentCount > 0);
 
   const flatListRef = useRef<FlatList<Dhikr>>(null);
-  const prevFilteredLen = useRef(filtered.length);
+  const prevFilteredLenRef = useRef(filtered.length);
+  const prevCategoryRef = useRef(activeCategory);
 
   useEffect(() => {
-    if (filtered.length < prevFilteredLen.current && filtered.length > 0) {
-      const firstActiveIndex = all.findIndex((d) => d.currentCount > 0);
-      if (firstActiveIndex >= 0) {
-        setTimeout(() => {
-          try {
-            flatListRef.current?.scrollToIndex({
-              index: firstActiveIndex,
-              animated: true,
-              viewPosition: 0,
-            });
-          } catch {}
-        }, 700);
-      }
+    if (prevCategoryRef.current !== activeCategory) {
+      prevCategoryRef.current = activeCategory;
+      prevFilteredLenRef.current = filtered.length;
+      return;
     }
-    prevFilteredLen.current = filtered.length;
-  }, [filtered.length]);
+    if (filtered.length < prevFilteredLenRef.current && filtered.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }, 700);
+    }
+    prevFilteredLenRef.current = filtered.length;
+  }, [filtered.length, activeCategory]);
 
   const handleEdit = (item: Dhikr) => {
     setEditItem(item);

@@ -68,7 +68,7 @@ interface AppContextValue {
   scheduleNotifications: (s: AppSettings) => Promise<void>;
 }
 
-const ADHKAR_KEY = "@adhkar_v10";
+const ADHKAR_KEY = "@adhkar_v11";
 const SETTINGS_KEY = "@settings_v1";
 const RECORDINGS_KEY = "@recordings_v1";
 const DAILY_STATS_KEY = "@daily_stats_v1";
