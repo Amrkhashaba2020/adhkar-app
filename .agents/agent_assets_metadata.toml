@@ -1,8 +1,85 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "D0RoqO5g2D2XmdsPOxz21"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
 title = "adhkar app icon"
+
+[[generated]]
+id = "qHRHFRNwiq4yLTO7RhSzx"
+uri = "file://artifacts/mobile/assets/images/adaptive-icon.png"
+type = "image"
+title = "adaptive-icon-foreground"
+
+[[generated]]
+id = "C5viznBfR0J_9-K0p8Gvm"
+uri = "file://attached_assets/generated_images/feature-graphic.png"
+type = "image"
+title = "play-store-feature-graphic"
+
+[[generated]]
+id = "ROSwNLJ-BEe_1wSbTuSfJ"
+uri = "file://attached_assets/generated_images/screenshot-01-morning.png"
+type = "image"
+title = "screenshot-morning-adhkar"
+
+[[generated]]
+id = "6Itx6qqO7VJoONlOoO-1o"
+uri = "file://attached_assets/generated_images/screenshot-02-evening.png"
+type = "image"
+title = "screenshot-evening-dark-mode"
+
+[[generated]]
+id = "DhEoGMe4r5l4CL6kJzosP"
+uri = "file://attached_assets/generated_images/screenshot-03-history.png"
+type = "image"
+title = "screenshot-history-calendar"
+
+[[generated]]
+id = "R0PiJG9GA9GDWYAS0kNzW"
+uri = "file://attached_assets/generated_images/screenshot-04-settings.png"
+type = "image"
+title = "screenshot-settings"
+
+[[outputs]]
+id = "Eh0q3Aom7b6GV02YlU34o"
+uri = "file://attached_assets/generated_images/feature-graphic.png"
+type = "image"
+title = "Feature Graphic — Play Store Banner"
+
+[[outputs]]
+id = "ko0_-T4gIydr7B6nHIohN"
+uri = "file://artifacts/mobile/assets/images/adaptive-icon.png"
+type = "image"
+title = "Adaptive Icon — خلفية الأيقونة التكيفية"
+
+[[outputs]]
+id = "OMv7R9Awz-hF8SbJSiCJ3"
+uri = "file://attached_assets/generated_images/screenshot-01-morning.png"
+type = "image"
+title = "Screenshot 1 — أذكار الصباح"
+
+[[outputs]]
+id = "CfAjEzUWdUnBJLu92FP5c"
+uri = "file://attached_assets/generated_images/screenshot-02-evening.png"
+type = "image"
+title = "Screenshot 2 — الوضع الليلي"
+
+[[outputs]]
+id = "bJFtq4k3SN_X7WkYIjOkV"
+uri = "file://attached_assets/generated_images/screenshot-03-history.png"
+type = "image"
+title = "Screenshot 3 — سجل الإنجاز"
+
+[[outputs]]
+id = "j-NxoS8cMWTRfEX7NtiUY"
+uri = "file://attached_assets/generated_images/screenshot-04-settings.png"
+type = "image"
+title = "Screenshot 4 — الإعدادات"
+
+[[outputs]]
+id = "CdVbdUoyuO1l1XD7RmMAU"
+uri = "file://attached_assets/play-store-listing.md"
+type = "text"
+title = "نص Play Store الكامل — عربي وإنجليزي"
