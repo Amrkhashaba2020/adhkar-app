@@ -18,6 +18,7 @@ import {
   type BgColorKey,
 } from "@/context/AppContext";
 import { Icon } from "@/components/Icon";
+import { HistoryModal } from "@/components/HistoryModal";
 
 const COLOR_OPTIONS: { key: BgColorKey; dayColor: string; nightColor: string; label: string }[] = [
   { key: "white", dayColor: "#FFFFFF", nightColor: "#1C1F2E", label: "أبيض" },
@@ -38,9 +39,11 @@ export function ControlBar() {
     speakAll,
     stopSpeaking,
     dailyStats,
+    completionHistory,
   } = useApp();
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const { theme, bgColor, fontSize } = settings;
   const textC = TEXT_COLORS[theme];
@@ -150,25 +153,39 @@ export function ControlBar() {
           >
             <Icon name="settings" size={16} color={mutedC} />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setHistoryOpen(true)}
+            style={[styles.iconBtn, { borderColor: borderC }]}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
+            <Icon name="calendar" size={16} color={mutedC} />
+          </TouchableOpacity>
         </View>
 
-        {activeCategory === "morning" && todayMorning > 0 && (
-          <View style={[styles.statsRow, { justifyContent: "flex-end" }]}>
-            <View style={[styles.statChip, { backgroundColor: primaryC + "18" }]}>
-              <Text style={[styles.statChipText, { color: primaryC }]}>☀️ {todayMorning}</Text>
+        {(() => {
+          const today = new Date();
+          const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+          const todayRecord = completionHistory.find((r) => r.date === todayKey);
+          const morningDone = todayRecord?.morning ?? false;
+          const eveningDone = todayRecord?.evening ?? false;
+          return (
+            <View style={styles.todayWidget}>
+              <View style={[styles.todayItem, { backgroundColor: morningDone ? primaryC + "18" : borderC + "44" }]}>
+                <Text style={styles.todayEmoji}>☀️</Text>
+                <Text style={[styles.todayItemText, { color: morningDone ? primaryC : mutedC }]}>
+                  {morningDone ? "مكتمل" : "لم يكتمل"}
+                </Text>
+              </View>
+              <View style={[styles.todayItem, { backgroundColor: eveningDone ? "#6366F118" : borderC + "44" }]}>
+                <Text style={styles.todayEmoji}>🌙</Text>
+                <Text style={[styles.todayItemText, { color: eveningDone ? "#6366F1" : mutedC }]}>
+                  {eveningDone ? "مكتمل" : "لم يكتمل"}
+                </Text>
+              </View>
             </View>
-            <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
-          </View>
-        )}
-        {activeCategory === "evening" && todayEvening > 0 && (
-          <View style={[styles.statsRow, { justifyContent: "flex-start" }]}>
-            <View style={[styles.statChip, { backgroundColor: "#000000", flexDirection: "row", alignItems: "center", gap: 4 }]}>
-              <Icon name="moon-filled" size={12} color="#FFFFFF" />
-              <Text style={[styles.statChipText, { color: "#FFFFFF" }]}>{todayEvening}</Text>
-            </View>
-            <Text style={[styles.statsLabel, { color: mutedC }]}>اليوم:</Text>
-          </View>
-        )}
+          );
+        })()}
       </View>
 
       <Modal
@@ -316,6 +333,8 @@ export function ControlBar() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <HistoryModal visible={historyOpen} onClose={() => setHistoryOpen(false)} />
     </>
   );
 }
@@ -354,24 +373,25 @@ const styles = StyleSheet.create({
   fontBtnText: {
     fontWeight: "700",
   },
-  statsRow: {
+  todayWidget: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 7,
+    justifyContent: "center",
+  },
+  todayItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 6,
-  },
-  statsLabel: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  statChip: {
+    gap: 5,
     paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 20,
   },
-  statChipText: {
-    fontSize: 12,
+  todayEmoji: {
+    fontSize: 13,
+  },
+  todayItemText: {
+    fontSize: 11,
     fontWeight: "600",
   },
   modalOverlay: {

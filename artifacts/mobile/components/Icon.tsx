@@ -34,7 +34,8 @@ export type IconName =
   | "speaker"
   | "settings"
   | "chevron-up"
-  | "chevron-down";
+  | "chevron-down"
+  | "calendar";
 
 export function Icon({ name, size = 24, color = "#000" }: IconProps) {
   const s = { stroke: color, strokeWidth: "2", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
@@ -212,6 +213,16 @@ export function Icon({ name, size = 24, color = "#000" }: IconProps) {
       return (
         <Svg width={size} height={size} viewBox="0 0 24 24">
           <Polyline {...s} points="6 9 12 15 18 9" />
+        </Svg>
+      );
+
+    case "calendar":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Rect {...s} x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <Line {...s} x1="16" y1="2" x2="16" y2="6" />
+          <Line {...s} x1="8" y1="2" x2="8" y2="6" />
+          <Line {...s} x1="3" y1="10" x2="21" y2="10" />
         </Svg>
       );
 

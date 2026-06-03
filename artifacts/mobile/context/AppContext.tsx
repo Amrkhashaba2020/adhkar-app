@@ -44,6 +44,12 @@ export interface DailyStats {
   eveningCount: number;
 }
 
+export interface CompletionRecord {
+  date: string;
+  morning: boolean;
+  evening: boolean;
+}
+
 interface AppContextValue {
   adhkar: Dhikr[];
   settings: AppSettings;
@@ -67,12 +73,14 @@ interface AppContextValue {
   saveRecording: (id: string, uri: string) => void;
   deleteRecording: (id: string) => void;
   scheduleNotifications: (s: AppSettings) => Promise<void>;
+  completionHistory: CompletionRecord[];
 }
 
 const ADHKAR_KEY = "@adhkar_v11";
 const SETTINGS_KEY = "@settings_v1";
 const RECORDINGS_KEY = "@recordings_v1";
 const DAILY_STATS_KEY = "@daily_stats_v1";
+const HISTORY_KEY = "@completion_history_v1";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -733,6 +741,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [recordings, setRecordings] = useState<Record<string, string>>({});
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [categoryResetKey, setCategoryResetKey] = useState(0);
+  const [completionHistory, setCompletionHistory] = useState<CompletionRecord[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats>({
     date: todayString(),
     morningCount: 0,
@@ -746,13 +755,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [storedAdhkar, storedSettings, storedRecordings, storedStats] =
+        const [storedAdhkar, storedSettings, storedRecordings, storedStats, storedHistory] =
           await Promise.all([
             AsyncStorage.getItem(ADHKAR_KEY),
             AsyncStorage.getItem(SETTINGS_KEY),
             AsyncStorage.getItem(RECORDINGS_KEY),
             AsyncStorage.getItem(DAILY_STATS_KEY),
+            AsyncStorage.getItem(HISTORY_KEY),
           ]);
+        if (storedHistory) {
+          setCompletionHistory(JSON.parse(storedHistory));
+        }
         if (storedAdhkar) {
           setAdhkar(JSON.parse(storedAdhkar));
         } else {
@@ -784,6 +797,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       soundRef.current?.unloadAsync();
     };
   }, []);
+
+  useEffect(() => {
+    if (adhkar.length === 0) return;
+    const today = todayString();
+    const morningAll = adhkar.filter((d) => d.category === "morning");
+    const eveningAll = adhkar.filter((d) => d.category === "evening");
+    const morningDone = morningAll.length > 0 && morningAll.every((d) => d.currentCount === 0);
+    const eveningDone = eveningAll.length > 0 && eveningAll.every((d) => d.currentCount === 0);
+    setCompletionHistory((prev) => {
+      const idx = prev.findIndex((r) => r.date === today);
+      const existing = idx >= 0 ? prev[idx] : { date: today, morning: false, evening: false };
+      const newMorning = existing.morning || morningDone;
+      const newEvening = existing.evening || eveningDone;
+      if (existing.morning === newMorning && existing.evening === newEvening) return prev;
+      const updated = { date: today, morning: newMorning, evening: newEvening };
+      const newHistory = idx >= 0
+        ? prev.map((r, i) => (i === idx ? updated : r))
+        : [...prev, updated];
+      const trimmed = newHistory.slice(-60);
+      AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+      return trimmed;
+    });
+  }, [adhkar]);
 
   const saveAdhkar = useCallback(async (list: Dhikr[]) => {
     try {
@@ -1184,6 +1220,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saveRecording,
         deleteRecording,
         scheduleNotifications,
+        completionHistory,
       }}
     >
       {children}
