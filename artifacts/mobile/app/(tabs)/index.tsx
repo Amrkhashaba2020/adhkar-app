@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Platform,
@@ -35,6 +35,27 @@ export default function MainScreen() {
 
   const all = adhkar.filter((d) => d.category === activeCategory);
   const filtered = all.filter((d) => d.currentCount > 0);
+
+  const flatListRef = useRef<FlatList<Dhikr>>(null);
+  const prevFilteredLen = useRef(filtered.length);
+
+  useEffect(() => {
+    if (filtered.length < prevFilteredLen.current && filtered.length > 0) {
+      const firstActiveIndex = all.findIndex((d) => d.currentCount > 0);
+      if (firstActiveIndex >= 0) {
+        setTimeout(() => {
+          try {
+            flatListRef.current?.scrollToIndex({
+              index: firstActiveIndex,
+              animated: true,
+              viewPosition: 0,
+            });
+          } catch {}
+        }, 700);
+      }
+    }
+    prevFilteredLen.current = filtered.length;
+  }, [filtered.length]);
 
   const handleEdit = (item: Dhikr) => {
     setEditItem(item);
@@ -103,6 +124,7 @@ export default function MainScreen() {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           data={all}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -114,6 +136,7 @@ export default function MainScreen() {
           ]}
           showsVerticalScrollIndicator={false}
           scrollEnabled={!!filtered.length}
+          onScrollToIndexFailed={() => {}}
         />
       )}
 
@@ -141,8 +164,8 @@ const styles = StyleSheet.create({
   },
   segmentWrapper: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingTop: 4,
+    paddingBottom: 6,
     borderBottomWidth: 1,
   },
   segment: {

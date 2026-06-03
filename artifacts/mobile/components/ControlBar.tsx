@@ -53,6 +53,7 @@ export function ControlBar() {
 
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 67) : insets.top;
 
+
   const todayMorning = dailyStats.morningCount;
   const todayEvening = dailyStats.eveningCount;
 
@@ -64,7 +65,7 @@ export function ControlBar() {
           {
             backgroundColor: barBg,
             borderBottomColor: borderC,
-            paddingTop: topPad + 8,
+            paddingTop: topPad + 2,
           },
         ]}
       >

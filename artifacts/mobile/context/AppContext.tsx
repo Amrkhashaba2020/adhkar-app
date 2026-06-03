@@ -272,7 +272,7 @@ const DEFAULT_MORNING: Dhikr[] = [
   },
   {
     id: "m27",
-    text: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
+    text: "سُبْحَانَ اللهِ وَبِحَمْدِهِ سُبْحَانَ اللهِ الْعَظِيمِ",
     maxCount: 100,
     currentCount: 100,
     category: "morning",
@@ -588,7 +588,7 @@ const DEFAULT_EVENING: Dhikr[] = [
   },
   {
     id: "e28",
-    text: "سُبْحَانَ اللهِ وَبِحَمْدِهِ",
+    text: "سُبْحَانَ اللهِ وَبِحَمْدِهِ سُبْحَانَ اللهِ الْعَظِيمِ",
     maxCount: 100,
     currentCount: 100,
     category: "evening",
@@ -990,9 +990,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   adhkarRef.current = adhkar;
 
   const speakAll = useCallback(() => {
-    const list = adhkarRef.current.filter(
+    const allList = adhkarRef.current.filter(
       (d) => d.category === activeCategory && d.currentCount > 0
     );
+    const skip = activeCategory === "morning" ? 4 : 5;
+    const list = allList.length > skip ? allList.slice(skip) : allList;
     if (list.length === 0) return;
     speakAllRef.current = true;
     setIsPlayingAll(true);

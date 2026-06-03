@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   },
   dhikrText: {
     fontFamily: Platform.OS === "ios" ? "System" : undefined,
-    textAlign: "right",
+    textAlign: "center",
     writingDirection: "rtl",
     paddingHorizontal: 16,
     paddingTop: 18,
