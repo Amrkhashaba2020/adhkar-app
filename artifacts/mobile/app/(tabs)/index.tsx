@@ -47,6 +47,9 @@ export default function MainScreen() {
     fadedIdsRef.current = new Set();
     setFadedIds(new Set());
     cardYRef.current.clear();
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    }, 0);
   }, [activeCategory]);
 
   useEffect(() => {
