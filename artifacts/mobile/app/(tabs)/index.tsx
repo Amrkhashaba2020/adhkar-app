@@ -39,21 +39,45 @@ export default function MainScreen() {
   const filtered = displayList.filter((d) => d.currentCount > 0);
 
   const flatListRef = useRef<FlatList<Dhikr>>(null);
+  const pendingScrollIndexRef = useRef<number | null>(null);
+  const allRef = useRef(all);
+  allRef.current = all;
 
   useEffect(() => {
     setFadedIds(new Set());
+    pendingScrollIndexRef.current = null;
   }, [activeCategory]);
 
   const handleFadeComplete = useCallback((id: string) => {
     setFadedIds((prev) => {
+      const prevDisplay = allRef.current.filter((d) => !prev.has(d.id));
+      const completedIdx = prevDisplay.findIndex((d) => d.id === id);
+      // After removing the completed card, the next card slides into completedIdx
+      pendingScrollIndexRef.current = completedIdx;
       const next = new Set(prev);
       next.add(id);
       return next;
     });
-    setTimeout(() => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    }, 50);
   }, []);
+
+  useEffect(() => {
+    const targetIdx = pendingScrollIndexRef.current;
+    if (targetIdx === null) return;
+    pendingScrollIndexRef.current = null;
+    setTimeout(() => {
+      if (targetIdx >= 0) {
+        try {
+          flatListRef.current?.scrollToIndex({
+            index: targetIdx,
+            animated: true,
+            viewPosition: 0,
+          });
+        } catch {
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }
+      }
+    }, 80);
+  }, [fadedIds]);
 
   const handleEdit = (item: Dhikr) => {
     setEditItem(item);
