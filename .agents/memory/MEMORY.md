@@ -1,0 +1,1 @@
+- [EAS build dep versions](eas-build-dep-versions.md) — EAS Android native builds error on SDK-incompatible expo-*/RN package versions even when Metro/web run fine; verify versions before building.
