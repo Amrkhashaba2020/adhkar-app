@@ -82,6 +82,11 @@ interface AppContextValue {
   stopSpeaking: () => void;
   speakDhikr: (id: string, text: string, count?: number) => void;
   stopDhikrSpeech: () => void;
+  stopAllAudio: () => Promise<void>;
+  registerCardSound: (sound: Audio.Sound | null) => void;
+  getPlaybackGen: () => number;
+  playingCardId: string | null;
+  setPlayingCardId: (id: string | null) => void;
   saveRecording: (id: string, uri: string) => void;
   deleteRecording: (id: string) => void;
   scheduleNotifications: (s: AppSettings) => Promise<void>;
@@ -745,6 +750,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isPlayingAll, setIsPlayingAll] = useState(false);
   const [recordings, setRecordings] = useState<Record<string, string>>({});
   const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const [playingCardId, setPlayingCardId] = useState<string | null>(null);
   const [categoryResetKey, setCategoryResetKey] = useState(0);
   const [completionHistory, setCompletionHistory] = useState<CompletionRecord[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats>({
@@ -756,6 +762,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const speakAllRef = useRef(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const ttsSoundRef = useRef<Audio.Sound | null>(null);
+  const cardSoundRef = useRef<Audio.Sound | null>(null);
+  const playbackGenRef = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -1040,6 +1048,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Include all cards; Quran cards without bundled/user audio will be skipped during playback
     const list = allVisible;
     if (list.length === 0) return;
+    // Stop any card/TTS playback before starting play-all
+    const gen = ++playbackGenRef.current;
+    ttsLoopRef.current = false;
+    setSpeakingId(null);
+    setPlayingCardId(null);
+    [ttsSoundRef, cardSoundRef].forEach((r) => {
+      if (r.current) {
+        r.current.stopAsync().then(() => r.current?.unloadAsync()).catch(() => {});
+        r.current = null;
+      }
+    });
     speakAllRef.current = true;
     setIsPlayingAll(true);
 
@@ -1102,7 +1121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
           const { sound } = await Audio.Sound.createAsync(
             BUNDLED_AUDIO[dhikr.id],
-            { shouldPlay: true },
+            { shouldPlay: false },
             (status) => {
               if (status.isLoaded && status.didJustFinish) {
                 sound.unloadAsync();
@@ -1112,7 +1131,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               }
             }
           );
+          // Abort if interrupted while loading
+          if (gen !== playbackGenRef.current || !speakAllRef.current) {
+            await sound.unloadAsync().catch(() => {});
+            return;
+          }
           soundRef.current = sound;
+          await sound.playAsync();
         } catch {
           repeatsDone++;
           setTimeout(playNext, 200);
@@ -1120,8 +1145,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         const uri = `${TTS_BASE}?text=${encodeURIComponent(dhikr.text)}`;
         Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
-          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: true }))
-          .then(({ sound }) => {
+          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: false }))
+          .then(async ({ sound }) => {
+            // Abort if interrupted while loading
+            if (gen !== playbackGenRef.current || !speakAllRef.current) {
+              await sound.unloadAsync().catch(() => {});
+              setIsPlayingAll(false);
+              return;
+            }
             soundRef.current = sound;
             sound.setOnPlaybackStatusUpdate((status) => {
               if (status.isLoaded && status.didJustFinish) {
@@ -1131,6 +1162,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 onPlayDone();
               }
             });
+            await sound.playAsync();
           })
           .catch(() => {
             repeatsDone++;
@@ -1166,6 +1198,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await ttsSoundRef.current.unloadAsync();
         ttsSoundRef.current = null;
       }
+      // Stop play-all and any card playback before starting TTS
+      const gen = ++playbackGenRef.current;
+      speakAllRef.current = false;
+      setIsPlayingAll(false);
+      setPlayingCardId(null);
+      for (const r of [soundRef, cardSoundRef]) {
+        if (r.current) {
+          try {
+            await r.current.stopAsync();
+            await r.current.unloadAsync();
+          } catch {}
+          r.current = null;
+        }
+      }
 
       const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
       const remaining = { value: count ?? 1 };
@@ -1174,15 +1220,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ttsLoopRef.current = true;
 
       const playOnce = () => {
-        if (!ttsLoopRef.current || remaining.value <= 0) {
+        if (!ttsLoopRef.current || remaining.value <= 0 || gen !== playbackGenRef.current) {
           ttsLoopRef.current = false;
           setSpeakingId(null);
           return;
         }
         Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
-          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: true }))
-          .then(({ sound }) => {
+          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: false }))
+          .then(async ({ sound }) => {
+            // Abort if interrupted while loading
+            if (gen !== playbackGenRef.current || !ttsLoopRef.current) {
+              await sound.unloadAsync().catch(() => {});
+              setSpeakingId(null);
+              return;
+            }
             ttsSoundRef.current = sound;
+            await sound.playAsync();
             sound.setOnPlaybackStatusUpdate((status) => {
               if (status.isLoaded && status.didJustFinish) {
                 sound.unloadAsync();
@@ -1230,6 +1283,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSpeakingId(null);
   }, []);
 
+  const registerCardSound = useCallback((sound: Audio.Sound | null) => {
+    cardSoundRef.current = sound;
+  }, []);
+
+  const getPlaybackGen = useCallback(() => playbackGenRef.current, []);
+
+  const stopAllAudio = useCallback(async () => {
+    // Invalidate any in-flight async playback loads
+    playbackGenRef.current += 1;
+    // Stop play-all
+    speakAllRef.current = false;
+    setIsPlayingAll(false);
+    // Stop TTS
+    ttsLoopRef.current = false;
+    setSpeakingId(null);
+    setPlayingCardId(null);
+    const refs = [soundRef, ttsSoundRef, cardSoundRef];
+    for (const r of refs) {
+      if (r.current) {
+        try {
+          await r.current.stopAsync();
+          await r.current.unloadAsync();
+        } catch {}
+        r.current = null;
+      }
+    }
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -1252,6 +1333,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         stopSpeaking,
         speakDhikr,
         stopDhikrSpeech,
+        stopAllAudio,
+        registerCardSound,
+        getPlaybackGen,
+        playingCardId,
+        setPlayingCardId,
         saveRecording,
         deleteRecording,
         scheduleNotifications,

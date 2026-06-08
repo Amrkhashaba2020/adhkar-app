@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
-  const { settings, decrementCount, recordings, saveRecording, deleteRecording, speakDhikr, speakingId } = useApp();
+  const { settings, decrementCount, recordings, saveRecording, deleteRecording, speakDhikr, speakingId, stopAllAudio, registerCardSound, getPlaybackGen, playingCardId, setPlayingCardId } = useApp();
   const { theme, bgColor, fontSize } = settings;
 
   const cardC = CARD_COLORS[theme][bgColor];
@@ -75,6 +75,18 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
   }, [isDone, fadeAnim]);
 
   useEffect(() => {
+    if (isPlaying && playingCardId !== item.id) {
+      isPlayingRef.current = false;
+      remainingRef.current = 0;
+      if (soundRef.current) {
+        soundRef.current.stopAsync().then(() => soundRef.current?.unloadAsync()).catch(() => {});
+        soundRef.current = null;
+      }
+      setIsPlaying(false);
+    }
+  }, [playingCardId, isPlaying, item.id]);
+
+  useEffect(() => {
     if (isRecording) {
       const pulse = Animated.loop(
         Animated.sequence([
@@ -107,28 +119,44 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
         await soundRef.current?.stopAsync();
         await soundRef.current?.unloadAsync();
         soundRef.current = null;
+        registerCardSound(null);
+        setPlayingCardId(null);
         setIsPlaying(false);
         return;
       }
+
+      // Stop any other audio (play-all, TTS, other card) before starting
+      await stopAllAudio();
+      setPlayingCardId(item.id);
+      const gen = getPlaybackGen();
 
       const audioSource: import("expo-av").AVPlaybackSource = hasUserRecording
         ? { uri: recordings[item.id] }
         : BUNDLED_AUDIO[item.id];
 
       const playOnce = () => {
-        if (!isPlayingRef.current || remainingRef.current <= 0) {
+        if (!isPlayingRef.current || remainingRef.current <= 0 || gen !== getPlaybackGen()) {
           isPlayingRef.current = false;
           setIsPlaying(false);
           return;
         }
         Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
-          .then(() => Audio.Sound.createAsync(audioSource))
-          .then(({ sound }) => {
+          .then(() => Audio.Sound.createAsync(audioSource, { shouldPlay: false }))
+          .then(async ({ sound }) => {
+            // Abort if interrupted while loading
+            if (gen !== getPlaybackGen() || !isPlayingRef.current) {
+              await sound.unloadAsync().catch(() => {});
+              setIsPlaying(false);
+              return;
+            }
             soundRef.current = sound;
+            registerCardSound(sound);
+            await sound.playAsync();
             sound.setOnPlaybackStatusUpdate((status) => {
               if (status.isLoaded && status.didJustFinish) {
                 sound.unloadAsync();
                 soundRef.current = null;
+                registerCardSound(null);
                 remainingRef.current -= 1;
                 decrementCount(item.id);
                 if (isPlayingRef.current && remainingRef.current > 0) {
@@ -136,6 +164,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
                 } else {
                   isPlayingRef.current = false;
                   setIsPlaying(false);
+                  setPlayingCardId(null);
                 }
               }
             });
