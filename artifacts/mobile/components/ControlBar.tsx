@@ -4,6 +4,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
@@ -326,6 +327,26 @@ export function ControlBar() {
                     <Text style={[styles.statName, { color: mutedC }]}>المجموع</Text>
                   </View>
                 </View>
+              </View>
+
+              <View style={[styles.section, { backgroundColor: sectionBg, borderColor: borderC }]}>
+                <Text style={[styles.sectionTitle, { color: mutedC }]}>التطبيق</Text>
+                <TouchableOpacity
+                  style={[styles.settingRow, { borderBottomWidth: 0 }]}
+                  onPress={() => {
+                    Share.share({
+                      title: "أذكار الصباح والمساء",
+                      message:
+                        "تطبيق أذكار الصباح والمساء 📿\nاحرص على ذكر الله صباحاً ومساءً\n\nحمّل التطبيق:\nhttps://play.google.com/store/apps/details?id=com.adhkar.morningevening",
+                    });
+                  }}
+                >
+                  <View style={styles.settingLabel}>
+                    <Text style={[styles.settingText, { color: textC }]}>مشاركة التطبيق</Text>
+                    <Text style={[styles.settingHint, { color: mutedC }]}>شارك التطبيق مع أهلك وأصدقائك</Text>
+                  </View>
+                  <Icon name="share-2" size={18} color={primaryC} />
+                </TouchableOpacity>
               </View>
 
               <View style={{ height: 40 }} />

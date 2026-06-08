@@ -1029,21 +1029,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   adhkarRef.current = adhkar;
 
   const speakAll = useCallback(() => {
-    const allList = adhkarRef.current.filter(
+    // Only play cards that are currently visible (currentCount > 0)
+    const list = adhkarRef.current.filter(
       (d) => d.category === activeCategory && d.currentCount > 0
     );
-    const skip = activeCategory === "morning" ? 4 : 5;
-    const list = allList.length > skip ? allList.slice(skip) : allList;
     if (list.length === 0) return;
     speakAllRef.current = true;
     setIsPlayingAll(true);
 
+    // Snapshot the counts so we know how many repetitions per dhikr
+    const counts = list.map((d) => d.currentCount);
     let itemIndex = 0;
+    let repeatsDone = 0;
 
     const playNext = () => {
       if (!speakAllRef.current) {
         setIsPlayingAll(false);
         return;
+      }
+      // Advance past fully-repeated dhikrs
+      while (itemIndex < list.length && repeatsDone >= counts[itemIndex]) {
+        itemIndex++;
+        repeatsDone = 0;
       }
       if (itemIndex >= list.length) {
         speakAllRef.current = false;
@@ -1052,24 +1059,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       const dhikr = list[itemIndex];
-
       const hasRecording = !!recordings[dhikr.id];
+
+      const onPlayDone = () => {
+        if (!speakAllRef.current) { setIsPlayingAll(false); return; }
+        setAdhkar((prev) => {
+          const next = prev.map((d) =>
+            d.id === dhikr.id && d.currentCount > 0
+              ? { ...d, currentCount: d.currentCount - 1 }
+              : d
+          );
+          AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
+          return next;
+        });
+        incrementDailyStats(dhikr.category);
+        repeatsDone++;
+        setTimeout(playNext, 400);
+      };
 
       if (hasRecording) {
         playSound(recordings[dhikr.id], () => {
           if (!speakAllRef.current) { setIsPlayingAll(false); return; }
-          setAdhkar((prev) => {
-            const next = prev.map((d) =>
-              d.id === dhikr.id && d.currentCount > 0
-                ? { ...d, currentCount: d.currentCount - 1 }
-                : d
-            );
-            AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
-            return next;
-          });
-          incrementDailyStats(dhikr.category);
-          itemIndex++;
-          setTimeout(playNext, 400);
+          onPlayDone();
         });
       } else {
         const uri = `${TTS_BASE}?text=${encodeURIComponent(dhikr.text)}`;
@@ -1082,24 +1093,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 sound.unloadAsync();
                 soundRef.current = null;
                 if (!speakAllRef.current) { setIsPlayingAll(false); return; }
-                setAdhkar((prev) => {
-                  const next = prev.map((d) =>
-                    d.id === dhikr.id && d.currentCount > 0
-                      ? { ...d, currentCount: d.currentCount - 1 }
-                      : d
-                  );
-                  AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
-                  return next;
-                });
-                incrementDailyStats(dhikr.category);
-                itemIndex++;
-                setTimeout(playNext, 400);
+                onPlayDone();
               }
             });
           })
           .catch(() => {
-            itemIndex++;
-            playNext();
+            repeatsDone++;
+            setTimeout(playNext, 200);
           });
       }
     };
