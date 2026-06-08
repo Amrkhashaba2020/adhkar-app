@@ -20,6 +20,7 @@ export const BUNDLED_AUDIO: Record<string, number> = {
   m3: require("../assets/audio/al-falaq.mp3"),
   m4: require("../assets/audio/an-nas.mp3"),
   e1: require("../assets/audio/ayatul-kursi.mp3"),
+  e2: require("../assets/audio/aman-al-rasul.mp3"),
   e3: require("../assets/audio/al-ikhlas.mp3"),
   e4: require("../assets/audio/al-falaq.mp3"),
   e5: require("../assets/audio/an-nas.mp3"),
