@@ -17,8 +17,10 @@ const TTS_BASE = `https://${process.env["EXPO_PUBLIC_DOMAIN"]}/api/tts`;
 export const BUNDLED_AUDIO: Record<string, number> = {
   m1: require("../assets/audio/ayatul-kursi.mp3"),
   m2: require("../assets/audio/al-ikhlas.mp3"),
+  m3: require("../assets/audio/al-falaq.mp3"),
   e1: require("../assets/audio/ayatul-kursi.mp3"),
   e3: require("../assets/audio/al-ikhlas.mp3"),
+  e4: require("../assets/audio/al-falaq.mp3"),
 };
 
 export type Category = "morning" | "evening";
