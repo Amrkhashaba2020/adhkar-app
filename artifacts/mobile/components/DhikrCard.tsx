@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { CARD_COLORS, TEXT_COLORS, useApp } from "@/context/AppContext";
+import { BUNDLED_AUDIO, CARD_COLORS, TEXT_COLORS, useApp } from "@/context/AppContext";
 import type { Dhikr } from "@/context/AppContext";
 import { Icon } from "@/components/Icon";
 
@@ -34,7 +34,9 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const isDone = item.currentCount === 0;
-  const hasRecording = !!recordings[item.id];
+  const hasBundledAudio = !!BUNDLED_AUDIO[item.id];
+  const hasUserRecording = !!recordings[item.id];
+  const hasRecording = hasUserRecording || hasBundledAudio;
 
   const [hidden, setHidden] = useState(isDone);
   const [isRecording, setIsRecording] = useState(false);
@@ -97,7 +99,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
   };
 
   const handlePlay = async () => {
-    if (!recordings[item.id]) return;
+    if (!hasRecording) return;
     try {
       if (isPlaying) {
         isPlayingRef.current = false;
@@ -109,6 +111,10 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
         return;
       }
 
+      const audioSource: import("expo-av").AVPlaybackSource = hasUserRecording
+        ? { uri: recordings[item.id] }
+        : BUNDLED_AUDIO[item.id];
+
       const playOnce = () => {
         if (!isPlayingRef.current || remainingRef.current <= 0) {
           isPlayingRef.current = false;
@@ -116,7 +122,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
           return;
         }
         Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
-          .then(() => Audio.Sound.createAsync({ uri: recordings[item.id] }))
+          .then(() => Audio.Sound.createAsync(audioSource))
           .then(({ sound }) => {
             soundRef.current = sound;
             sound.setOnPlaybackStatusUpdate((status) => {
@@ -303,10 +309,16 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
             <Text style={[styles.recordingText, { color: redC }]}>جارٍ التسجيل... اضغط ■ للإيقاف</Text>
           </View>
         )}
-        {hasRecording && !isRecording && (
+        {hasUserRecording && !isRecording && (
           <View style={[styles.recordingBanner, { backgroundColor: primaryC + "12" }]}>
             <Icon name="check-circle" size={12} color={primaryC} />
             <Text style={[styles.recordingText, { color: primaryC }]}>تم تسجيل صوتك بنجاح ✓</Text>
+          </View>
+        )}
+        {!hasUserRecording && hasBundledAudio && !isRecording && (
+          <View style={[styles.recordingBanner, { backgroundColor: primaryC + "12" }]}>
+            <Icon name="volume-2" size={12} color={primaryC} />
+            <Text style={[styles.recordingText, { color: primaryC }]}>يتوفر صوت مرفق</Text>
           </View>
         )}
       </Pressable>

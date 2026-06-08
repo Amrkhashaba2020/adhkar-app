@@ -14,6 +14,11 @@ import { Platform } from "react-native";
 
 const TTS_BASE = `https://${process.env["EXPO_PUBLIC_DOMAIN"]}/api/tts`;
 
+export const BUNDLED_AUDIO: Record<string, number> = {
+  m1: require("../assets/audio/ayatul-kursi.mp3"),
+  e1: require("../assets/audio/ayatul-kursi.mp3"),
+};
+
 export type Category = "morning" | "evening";
 export type ThemeMode = "day" | "night";
 export type BgColorKey = "white" | "cream" | "mint";
@@ -1037,7 +1042,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let itemIndex = 0;
     let repeatsDone = 0;
 
-    const playNext = () => {
+    const playNext = async () => {
       if (!speakAllRef.current) {
         setIsPlayingAll(false);
         return;
@@ -1055,6 +1060,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const dhikr = list[itemIndex];
       const hasRecording = !!recordings[dhikr.id];
+      const hasBundled = !!BUNDLED_AUDIO[dhikr.id];
 
       const onPlayDone = () => {
         if (!speakAllRef.current) { setIsPlayingAll(false); return; }
@@ -1077,6 +1083,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (!speakAllRef.current) { setIsPlayingAll(false); return; }
           onPlayDone();
         });
+      } else if (hasBundled) {
+        try {
+          if (soundRef.current) { await soundRef.current.unloadAsync(); soundRef.current = null; }
+          await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+          const { sound } = await Audio.Sound.createAsync(
+            BUNDLED_AUDIO[dhikr.id],
+            { shouldPlay: true },
+            (status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                sound.unloadAsync();
+                soundRef.current = null;
+                if (!speakAllRef.current) { setIsPlayingAll(false); return; }
+                onPlayDone();
+              }
+            }
+          );
+          soundRef.current = sound;
+        } catch {
+          repeatsDone++;
+          setTimeout(playNext, 200);
+        }
       } else {
         const uri = `${TTS_BASE}?text=${encodeURIComponent(dhikr.text)}`;
         Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true })
