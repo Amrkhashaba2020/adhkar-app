@@ -1029,10 +1029,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   adhkarRef.current = adhkar;
 
   const speakAll = useCallback(() => {
-    // Only play cards that are currently visible (currentCount > 0)
-    const list = adhkarRef.current.filter(
+    // Skip first 4 cards in morning and first 5 in evening (Quran/special cards)
+    const skip = activeCategory === "morning" ? 4 : 5;
+    const allVisible = adhkarRef.current.filter(
       (d) => d.category === activeCategory && d.currentCount > 0
     );
+    const list = allVisible.length > skip ? allVisible.slice(skip) : allVisible;
     if (list.length === 0) return;
     speakAllRef.current = true;
     setIsPlayingAll(true);
