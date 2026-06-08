@@ -1034,12 +1034,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   adhkarRef.current = adhkar;
 
   const speakAll = useCallback(() => {
-    // Skip first 4 cards in morning and first 5 in evening (Quran/special cards)
-    const skip = activeCategory === "morning" ? 4 : 5;
     const allVisible = adhkarRef.current.filter(
       (d) => d.category === activeCategory && d.currentCount > 0
     );
-    const list = allVisible.length > skip ? allVisible.slice(skip) : allVisible;
+    // Include all cards; Quran cards without bundled/user audio will be skipped during playback
+    const list = allVisible;
     if (list.length === 0) return;
     speakAllRef.current = true;
     setIsPlayingAll(true);
@@ -1068,6 +1067,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const dhikr = list[itemIndex];
       const hasRecording = !!recordings[dhikr.id];
       const hasBundled = !!BUNDLED_AUDIO[dhikr.id];
+
+      // Skip Quran cards that have no audio source (no bundled, no user recording)
+      if (dhikr.isQuran && !hasRecording && !hasBundled) {
+        repeatsDone = counts[itemIndex]; // mark as done to advance
+        setTimeout(playNext, 50);
+        return;
+      }
 
       const onPlayDone = () => {
         if (!speakAllRef.current) { setIsPlayingAll(false); return; }
