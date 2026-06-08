@@ -76,7 +76,7 @@ interface AppContextValue {
   completionHistory: CompletionRecord[];
 }
 
-const ADHKAR_KEY = "@adhkar_v12";
+const ADHKAR_KEY = "@adhkar_v13";
 const SETTINGS_KEY = "@settings_v1";
 const RECORDINGS_KEY = "@recordings_v1";
 const DAILY_STATS_KEY = "@daily_stats_v1";
