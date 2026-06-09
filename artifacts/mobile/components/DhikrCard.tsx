@@ -192,14 +192,19 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
       setIsRecording(false);
       try {
         const uri = recordingRef.current?.getURI();
+        console.log("[MIC:stop] id=", item.id, "uri=", uri, "ref=", !!recordingRef.current);
         await recordingRef.current?.stopAndUnloadAsync();
+        console.log("[MIC:stopped] unloaded ok");
         recordingRef.current = null;
         if (uri) {
+          console.log("[MIC:save] calling saveRecording...");
           await saveRecording(item.id, uri);
+          console.log("[MIC:save] done");
         } else {
           Alert.alert("تنبيه", "لم يتم الحصول على ملف التسجيل.");
         }
       } catch (e) {
+        console.log("[MIC:error]", e);
         Alert.alert("خطأ في الحفظ", String(e));
       }
     } else {

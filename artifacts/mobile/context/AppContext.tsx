@@ -1022,11 +1022,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveRecording = useCallback(async (id: string, uri: string) => {
+    console.log("[SAVE] called id=", id, "uri=", uri);
     // expo-av writes the recording to the volatile cache directory. Copy it
     // into the persistent document directory so it survives app restarts.
     let persistentUri: string | null = null;
     try {
       const docDir = FileSystem.documentDirectory;
+      console.log("[SAVE] docDir=", docDir);
       if (!docDir) throw new Error("documentDirectory unavailable");
       const recDir = `${docDir}recordings/`;
       await FileSystem.makeDirectoryAsync(recDir, { intermediates: true });
@@ -1034,23 +1036,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const slashIdx = uri.lastIndexOf("/");
       const ext = dotIdx > slashIdx ? uri.slice(dotIdx) : ".m4a";
       const dest = `${recDir}${id}${ext}`;
-      // Verify source file exists before copying
       const srcInfo = await FileSystem.getInfoAsync(uri);
+      console.log("[SAVE] srcInfo.exists=", srcInfo.exists, "dest=", dest);
       if (!srcInfo.exists) throw new Error("source recording missing");
       await FileSystem.copyAsync({ from: uri, to: dest });
-      // Verify destination was written
       const destInfo = await FileSystem.getInfoAsync(dest);
+      console.log("[SAVE] destInfo.exists=", destInfo.exists);
       if (!destInfo.exists) throw new Error("copy failed");
       persistentUri = dest;
-    } catch {
+    } catch (e) {
+      console.log("[SAVE] catch:", e, "→ fallback to uri");
       // If copy fails, fall back to the original URI (volatile but better than nothing)
       persistentUri = uri;
     }
+    console.log("[SAVE] setRecordings persistentUri=", persistentUri);
     setRecordings((prev) => {
       const next = { ...prev, [id]: persistentUri! };
       AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(next));
       return next;
     });
+    console.log("[SAVE] done");
   }, []);
 
   const deleteRecording = useCallback((id: string) => {
