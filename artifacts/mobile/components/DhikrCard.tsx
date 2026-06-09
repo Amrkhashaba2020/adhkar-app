@@ -189,12 +189,13 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
   const handleMic = async () => {
     if (isRecording) {
       try {
-        await recordingRef.current?.stopAndUnloadAsync();
+        // Get URI BEFORE stopping — some platforms delete the temp file on unload
         const uri = recordingRef.current?.getURI();
-        if (uri) {
-          saveRecording(item.id, uri);
-        }
+        await recordingRef.current?.stopAndUnloadAsync();
         recordingRef.current = null;
+        if (uri) {
+          await saveRecording(item.id, uri);
+        }
       } catch {}
       setIsRecording(false);
     } else {
@@ -278,7 +279,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
                 {
                   backgroundColor: isRecording
                     ? redC + "22"
-                    : hasRecording
+                    : hasUserRecording
                     ? primaryC + "22"
                     : mutedC + "18",
                 },
@@ -288,11 +289,11 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
               <Icon
                 name={isRecording ? "square" : "mic"}
                 size={16}
-                color={isRecording ? redC : hasRecording ? primaryC : mutedC}
+                color={isRecording ? redC : hasUserRecording ? primaryC : mutedC}
               />
             </TouchableOpacity>
-            <Text style={[styles.micLabel, { color: isRecording ? redC : hasRecording ? primaryC : mutedC }]}>
-              {isRecording ? "اضغط للإيقاف" : hasRecording ? "إعادة التسجيل" : "سجّل صوتك"}
+            <Text style={[styles.micLabel, { color: isRecording ? redC : hasUserRecording ? primaryC : mutedC }]}>
+              {isRecording ? "اضغط للإيقاف" : hasUserRecording ? "إعادة التسجيل" : "سجّل صوتك"}
             </Text>
           </Animated.View>
 

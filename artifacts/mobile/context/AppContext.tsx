@@ -1026,20 +1026,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // into the persistent document directory so it survives app restarts.
     let persistentUri: string | null = null;
     try {
-      const recDir = `${FileSystem.documentDirectory}recordings/`;
+      const docDir = FileSystem.documentDirectory;
+      if (!docDir) throw new Error("documentDirectory unavailable");
+      const recDir = `${docDir}recordings/`;
       await FileSystem.makeDirectoryAsync(recDir, { intermediates: true });
       const dotIdx = uri.lastIndexOf(".");
       const slashIdx = uri.lastIndexOf("/");
       const ext = dotIdx > slashIdx ? uri.slice(dotIdx) : ".m4a";
       const dest = `${recDir}${id}${ext}`;
+      // Verify source file exists before copying
+      const srcInfo = await FileSystem.getInfoAsync(uri);
+      if (!srcInfo.exists) throw new Error("source recording missing");
       await FileSystem.copyAsync({ from: uri, to: dest });
+      // Verify destination was written
+      const destInfo = await FileSystem.getInfoAsync(dest);
+      if (!destInfo.exists) throw new Error("copy failed");
       persistentUri = dest;
     } catch {
-      // Do not persist the volatile cache uri — that would silently break
-      // playback after the cache is purged. Keep the previous recording.
-      persistentUri = null;
+      // If copy fails, fall back to the original URI (volatile but better than nothing)
+      persistentUri = uri;
     }
-    if (!persistentUri) return;
     setRecordings((prev) => {
       const next = { ...prev, [id]: persistentUri! };
       AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(next));
