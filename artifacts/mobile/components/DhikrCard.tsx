@@ -1,6 +1,7 @@
 import { Audio } from "expo-av";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Platform,
   Pressable,
@@ -188,20 +189,35 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
 
   const handleMic = async () => {
     if (isRecording) {
+      setIsRecording(false);
       try {
-        // Get URI BEFORE stopping — some platforms delete the temp file on unload
         const uri = recordingRef.current?.getURI();
         await recordingRef.current?.stopAndUnloadAsync();
         recordingRef.current = null;
         if (uri) {
           await saveRecording(item.id, uri);
+        } else {
+          Alert.alert("تنبيه", "لم يتم الحصول على ملف التسجيل.");
         }
-      } catch {}
-      setIsRecording(false);
+      } catch (e) {
+        Alert.alert("خطأ في الحفظ", String(e));
+      }
     } else {
       try {
-        const { granted } = await Audio.requestPermissionsAsync();
-        if (!granted) return;
+        // Check current permission status first (no dialog if already denied)
+        const current = await Audio.getPermissionsAsync();
+        let granted = current.granted;
+        if (!granted && current.canAskAgain) {
+          const result = await Audio.requestPermissionsAsync();
+          granted = result.granted;
+        }
+        if (!granted) {
+          Alert.alert(
+            "إذن المايكروفون",
+            "يرجى منح إذن المايكروفون للتطبيق من إعدادات الجهاز.",
+          );
+          return;
+        }
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
@@ -211,7 +227,9 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
         );
         recordingRef.current = recording;
         setIsRecording(true);
-      } catch {}
+      } catch (e) {
+        Alert.alert("خطأ في التسجيل", String(e));
+      }
     }
   };
 
