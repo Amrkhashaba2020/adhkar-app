@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
+import { Directory, File, Paths } from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
 import React, {
@@ -790,7 +791,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(storedSettings) });
         }
         if (storedRecordings) {
-          setRecordings(JSON.parse(storedRecordings));
+          // Drop entries whose underlying file no longer exists (e.g. legacy
+          // cache-directory uris purged by the OS) so cards fall back to
+          // bundled audio instead of failing silently.
+          const parsedRecordings: Record<string, string> = JSON.parse(storedRecordings);
+          const validRecordings: Record<string, string> = {};
+          let recordingsChanged = false;
+          for (const [recId, recUri] of Object.entries(parsedRecordings)) {
+            try {
+              if (typeof recUri === "string" && new File(recUri).exists) {
+                validRecordings[recId] = recUri;
+              } else {
+                recordingsChanged = true;
+              }
+            } catch {
+              recordingsChanged = true;
+            }
+          }
+          setRecordings(validRecordings);
+          if (recordingsChanged) {
+            AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(validRecordings));
+          }
         }
         if (storedStats) {
           const parsed: DailyStats = JSON.parse(storedStats);
@@ -1000,8 +1021,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveRecording = useCallback(async (id: string, uri: string) => {
+    // expo-av writes the recording to the cache directory, which the OS can
+    // purge. Copy it into the persistent document directory so it survives
+    // app restarts, otherwise saved recordings fail to play later.
+    let persistentUri: string | null = null;
+    try {
+      const recDir = new Directory(Paths.document, "recordings");
+      if (!recDir.exists) {
+        recDir.create({ intermediates: true, idempotent: true });
+      }
+      const src = new File(uri);
+      const ext = src.extension || ".m4a";
+      const dest = new File(recDir, `${id}${ext}`);
+      if (dest.exists) dest.delete();
+      src.copy(dest);
+      persistentUri = dest.uri;
+    } catch {
+      // Do not persist the volatile cache uri — that would silently break
+      // playback after the cache is purged. Keep the previous recording.
+      persistentUri = null;
+    }
+    if (!persistentUri) return;
     setRecordings((prev) => {
-      const next = { ...prev, [id]: uri };
+      const next = { ...prev, [id]: persistentUri! };
       AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(next));
       return next;
     });
@@ -1009,6 +1051,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const deleteRecording = useCallback((id: string) => {
     setRecordings((prev) => {
+      const stored = prev[id];
+      if (stored) {
+        try {
+          const f = new File(stored);
+          if (f.exists) f.delete();
+        } catch {
+          // Ignore missing/inaccessible files.
+        }
+      }
       const next = { ...prev };
       delete next[id];
       AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(next));
