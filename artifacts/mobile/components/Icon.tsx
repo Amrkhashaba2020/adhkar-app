@@ -36,7 +36,9 @@ export type IconName =
   | "chevron-up"
   | "chevron-down"
   | "calendar"
-  | "share-2";
+  | "share-2"
+  | "play"
+  | "volume-x";
 
 export function Icon({ name, size = 24, color = "#000" }: IconProps) {
   const s = { stroke: color, strokeWidth: "2", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, fill: "none" };
@@ -235,6 +237,22 @@ export function Icon({ name, size = 24, color = "#000" }: IconProps) {
           <Circle {...s} cx="18" cy="19" r="3" />
           <Line {...s} x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
           <Line {...s} x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </Svg>
+      );
+
+    case "play":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Path d="M5 3l14 9-14 9V3z" fill={color} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      );
+
+    case "volume-x":
+      return (
+        <Svg width={size} height={size} viewBox="0 0 24 24">
+          <Polygon points="11,5 6,9 2,9 2,15 6,15 11,19" fill={color} stroke={color} strokeWidth="1" strokeLinejoin="round" />
+          <Line {...s} x1="23" y1="9" x2="17" y2="15" />
+          <Line {...s} x1="17" y1="9" x2="23" y2="15" />
         </Svg>
       );
 

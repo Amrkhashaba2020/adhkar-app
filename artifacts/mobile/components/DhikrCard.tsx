@@ -289,7 +289,8 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
             </TouchableOpacity>
           )}
 
-          {hasRecording && !isRecording && (
+          {/* Play button for bundled audio only — hidden once user has recorded */}
+          {hasBundledAudio && !hasUserRecording && !isRecording && (
             <TouchableOpacity
               onPress={handlePlay}
               style={[styles.iconBtn, { backgroundColor: isPlaying ? primaryC + "33" : primaryC + "18" }]}
@@ -301,27 +302,35 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
 
           <Animated.View style={[styles.micRow, { transform: [{ scale: pulseAnim }] }]}>
             <TouchableOpacity
-              onPress={handleMic}
+              onPress={hasUserRecording && !isRecording ? handlePlay : handleMic}
               style={[
                 styles.iconBtn,
                 {
                   backgroundColor: isRecording
                     ? redC + "22"
                     : hasUserRecording
-                    ? primaryC + "22"
+                    ? isPlaying ? primaryC + "33" : primaryC + "22"
                     : mutedC + "18",
                 },
               ]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Icon
-                name={isRecording ? "square" : "mic"}
+                name={
+                  isRecording ? "square"
+                  : hasUserRecording ? (isPlaying ? "volume-x" : "play")
+                  : "mic"
+                }
                 size={16}
                 color={isRecording ? redC : hasUserRecording ? primaryC : mutedC}
               />
             </TouchableOpacity>
             <Text style={[styles.micLabel, { color: isRecording ? redC : hasUserRecording ? primaryC : mutedC }]}>
-              {isRecording ? "اضغط للإيقاف" : hasUserRecording ? "إعادة التسجيل" : "استمع إلى الذكر بصوتك"}
+              {isRecording
+                ? "اضغط للإيقاف"
+                : hasUserRecording
+                ? isPlaying ? "اضغط للإيقاف" : "اضغط للاستماع"
+                : "استمع إلى الذكر بصوتك"}
             </Text>
           </Animated.View>
 
