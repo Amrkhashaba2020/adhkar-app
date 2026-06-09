@@ -791,26 +791,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(storedSettings) });
         }
         if (storedRecordings) {
-          // Drop entries whose underlying file no longer exists (e.g. cache-
-          // directory uris purged by the OS) so cards fall back to bundled
-          // audio instead of failing silently.
+          // Load saved recordings. Only keep entries whose file actually exists
+          // — but only check URIs that are in the persistent document directory;
+          // skip the existence check for any other URI scheme to avoid false
+          // negatives on Android where getInfoAsync can mis-report cache files.
           const parsedRecordings: Record<string, string> = JSON.parse(storedRecordings);
+          const docDir = FileSystem.documentDirectory ?? "";
           const validRecordings: Record<string, string> = {};
-          let recordingsChanged = false;
+          let changed = false;
           for (const [recId, recUri] of Object.entries(parsedRecordings)) {
-            try {
-              const info = await FileSystem.getInfoAsync(recUri);
-              if (info.exists) {
-                validRecordings[recId] = recUri;
-              } else {
-                recordingsChanged = true;
+            if (recUri.startsWith(docDir)) {
+              // Persistent copy — verify it still exists
+              try {
+                const info = await FileSystem.getInfoAsync(recUri);
+                if (info.exists) {
+                  validRecordings[recId] = recUri;
+                } else {
+                  changed = true;
+                }
+              } catch {
+                changed = true;
               }
-            } catch {
-              recordingsChanged = true;
+            } else {
+              // Volatile / unknown URI — keep without checking; will fail
+              // gracefully on playback if the file is gone
+              validRecordings[recId] = recUri;
             }
           }
           setRecordings(validRecordings);
-          if (recordingsChanged) {
+          if (changed) {
             AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(validRecordings));
           }
         }
@@ -1022,40 +1031,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveRecording = useCallback(async (id: string, uri: string) => {
-    console.log("[SAVE] called id=", id, "uri=", uri);
-    // expo-av writes the recording to the volatile cache directory. Copy it
-    // into the persistent document directory so it survives app restarts.
-    let persistentUri: string | null = null;
+    // Try to copy the volatile cache recording to persistent document storage.
+    // Do NOT pre-check if the source exists — on Android the path is valid but
+    // FileSystem.getInfoAsync sometimes returns exists:false for cache-dir files.
+    // Just attempt the copy; on failure keep the original volatile URI so the
+    // recording is at least usable for the current session.
+    let persistentUri = uri;
     try {
       const docDir = FileSystem.documentDirectory;
-      console.log("[SAVE] docDir=", docDir);
-      if (!docDir) throw new Error("documentDirectory unavailable");
+      if (!docDir) throw new Error("no docDir");
       const recDir = `${docDir}recordings/`;
       await FileSystem.makeDirectoryAsync(recDir, { intermediates: true });
       const dotIdx = uri.lastIndexOf(".");
       const slashIdx = uri.lastIndexOf("/");
       const ext = dotIdx > slashIdx ? uri.slice(dotIdx) : ".m4a";
       const dest = `${recDir}${id}${ext}`;
-      const srcInfo = await FileSystem.getInfoAsync(uri);
-      console.log("[SAVE] srcInfo.exists=", srcInfo.exists, "dest=", dest);
-      if (!srcInfo.exists) throw new Error("source recording missing");
       await FileSystem.copyAsync({ from: uri, to: dest });
-      const destInfo = await FileSystem.getInfoAsync(dest);
-      console.log("[SAVE] destInfo.exists=", destInfo.exists);
-      if (!destInfo.exists) throw new Error("copy failed");
       persistentUri = dest;
-    } catch (e) {
-      console.log("[SAVE] catch:", e, "→ fallback to uri");
-      // If copy fails, fall back to the original URI (volatile but better than nothing)
-      persistentUri = uri;
+    } catch {
+      // copy failed — volatile URI is still usable this session
     }
-    console.log("[SAVE] setRecordings persistentUri=", persistentUri);
     setRecordings((prev) => {
-      const next = { ...prev, [id]: persistentUri! };
+      const next = { ...prev, [id]: persistentUri };
       AsyncStorage.setItem(RECORDINGS_KEY, JSON.stringify(next));
       return next;
     });
-    console.log("[SAVE] done");
   }, []);
 
   const deleteRecording = useCallback((id: string) => {

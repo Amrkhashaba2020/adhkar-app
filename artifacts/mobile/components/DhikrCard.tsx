@@ -21,7 +21,7 @@ interface Props {
 }
 
 export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
-  const { settings, decrementCount, recordings, saveRecording, deleteRecording, speakDhikr, speakingId, stopAllAudio, registerCardSound, getPlaybackGen, playingCardId, setPlayingCardId } = useApp();
+  const { settings, decrementCount, recordings, saveRecording, deleteRecording, speakDhikr, speakingId, stopDhikrSpeech, stopAllAudio, registerCardSound, getPlaybackGen, playingCardId, setPlayingCardId } = useApp();
   const { theme, bgColor, fontSize } = settings;
 
   const cardC = CARD_COLORS[theme][bgColor];
@@ -54,10 +54,20 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
       isPlayingRef.current = false;
       remainingRef.current = 0;
       if (soundRef.current) {
-        soundRef.current.stopAsync().then(() => soundRef.current?.unloadAsync());
+        soundRef.current.stopAsync().catch(() => {}).then(() => soundRef.current?.unloadAsync().catch(() => {}));
         soundRef.current = null;
       }
       setIsPlaying(false);
+      // Stop TTS if it's currently reading this card
+      if (speakingId === item.id) stopDhikrSpeech();
+      // Stop any in-progress recording and save what was captured
+      if (isRecording && recordingRef.current) {
+        const recUri = recordingRef.current.getURI();
+        recordingRef.current.stopAndUnloadAsync().catch(() => {});
+        recordingRef.current = null;
+        setIsRecording(false);
+        if (recUri) saveRecording(item.id, recUri);
+      }
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 600,
@@ -73,7 +83,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
       setHidden(false);
     }
     prevIsDoneRef.current = isDone;
-  }, [isDone, fadeAnim]);
+  }, [isDone, fadeAnim, speakingId, isRecording]);
 
   useEffect(() => {
     if (isPlaying && playingCardId !== item.id) {
@@ -192,19 +202,14 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
       setIsRecording(false);
       try {
         const uri = recordingRef.current?.getURI();
-        console.log("[MIC:stop] id=", item.id, "uri=", uri, "ref=", !!recordingRef.current);
         await recordingRef.current?.stopAndUnloadAsync();
-        console.log("[MIC:stopped] unloaded ok");
         recordingRef.current = null;
         if (uri) {
-          console.log("[MIC:save] calling saveRecording...");
           await saveRecording(item.id, uri);
-          console.log("[MIC:save] done");
         } else {
           Alert.alert("تنبيه", "لم يتم الحصول على ملف التسجيل.");
         }
       } catch (e) {
-        console.log("[MIC:error]", e);
         Alert.alert("خطأ في الحفظ", String(e));
       }
     } else {
