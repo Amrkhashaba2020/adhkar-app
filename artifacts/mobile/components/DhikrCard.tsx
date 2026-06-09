@@ -321,7 +321,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
               />
             </TouchableOpacity>
             <Text style={[styles.micLabel, { color: isRecording ? redC : hasUserRecording ? primaryC : mutedC }]}>
-              {isRecording ? "اضغط للإيقاف" : hasUserRecording ? "إعادة التسجيل" : "سجّل صوتك"}
+              {isRecording ? "اضغط للإيقاف" : hasUserRecording ? "إعادة التسجيل" : "استمع إلى الذكر بصوتك"}
             </Text>
           </Animated.View>
 
