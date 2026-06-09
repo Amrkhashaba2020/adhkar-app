@@ -89,3 +89,9 @@ id = "w6TE2U4q714cWnRv1PW1r"
 uri = "file://failed-operations.pdf"
 type = "pdf"
 title = "تقرير العمليات المكررة — أذكار الصباح والمساء"
+
+[[outputs]]
+id = "QbEZV3x2UuZ-3R9NHJg7L"
+uri = "file://failed-operations-en.pdf"
+type = "pdf"
+title = "Repeated Operations Report — Morning & Evening Adhkar App"
