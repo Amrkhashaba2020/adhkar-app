@@ -297,7 +297,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
           </Animated.View>
 
           <View style={styles.rightActions}>
-            {hasRecording && !isRecording && (
+            {hasUserRecording && !isRecording && (
               <TouchableOpacity
                 onPress={handleDeleteRecording}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -342,12 +342,6 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
           <View style={[styles.recordingBanner, { backgroundColor: primaryC + "12" }]}>
             <Icon name="check-circle" size={12} color={primaryC} />
             <Text style={[styles.recordingText, { color: primaryC }]}>تم تسجيل صوتك بنجاح ✓</Text>
-          </View>
-        )}
-        {!hasUserRecording && hasBundledAudio && !isRecording && (
-          <View style={[styles.recordingBanner, { backgroundColor: primaryC + "12" }]}>
-            <Icon name="volume-2" size={12} color={primaryC} />
-            <Text style={[styles.recordingText, { color: primaryC }]}>يتوفر صوت مرفق</Text>
           </View>
         )}
       </Pressable>
