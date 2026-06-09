@@ -1,2 +1,3 @@
 - [EAS build dep versions](eas-build-dep-versions.md) — EAS Android native builds error on SDK-incompatible expo-*/RN package versions even when Metro/web run fine; verify versions before building.
 - [Expo recording persistence](expo-recording-persistence.md) — expo-av recordings save to volatile cache dir; copy to documentDirectory on save or they silently stop playing after restart.
+- [App key state](app-key-state.md) — current ADHKAR_KEY, RECORDINGS_KEY, versionCode, and bump rules.
