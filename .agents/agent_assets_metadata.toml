@@ -83,3 +83,9 @@ id = "CdVbdUoyuO1l1XD7RmMAU"
 uri = "file://attached_assets/play-store-listing.md"
 type = "text"
 title = "نص Play Store الكامل — عربي وإنجليزي"
+
+[[outputs]]
+id = "w6TE2U4q714cWnRv1PW1r"
+uri = "file://failed-operations.pdf"
+type = "pdf"
+title = "تقرير العمليات المكررة — أذكار الصباح والمساء"
