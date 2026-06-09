@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
-import { Directory, File, Paths } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
 import React, {
@@ -791,15 +791,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(storedSettings) });
         }
         if (storedRecordings) {
-          // Drop entries whose underlying file no longer exists (e.g. legacy
-          // cache-directory uris purged by the OS) so cards fall back to
-          // bundled audio instead of failing silently.
+          // Drop entries whose underlying file no longer exists (e.g. cache-
+          // directory uris purged by the OS) so cards fall back to bundled
+          // audio instead of failing silently.
           const parsedRecordings: Record<string, string> = JSON.parse(storedRecordings);
           const validRecordings: Record<string, string> = {};
           let recordingsChanged = false;
           for (const [recId, recUri] of Object.entries(parsedRecordings)) {
             try {
-              if (typeof recUri === "string" && new File(recUri).exists) {
+              const info = await FileSystem.getInfoAsync(recUri);
+              if (info.exists) {
                 validRecordings[recId] = recUri;
               } else {
                 recordingsChanged = true;
@@ -1021,21 +1022,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveRecording = useCallback(async (id: string, uri: string) => {
-    // expo-av writes the recording to the cache directory, which the OS can
-    // purge. Copy it into the persistent document directory so it survives
-    // app restarts, otherwise saved recordings fail to play later.
+    // expo-av writes the recording to the volatile cache directory. Copy it
+    // into the persistent document directory so it survives app restarts.
     let persistentUri: string | null = null;
     try {
-      const recDir = new Directory(Paths.document, "recordings");
-      if (!recDir.exists) {
-        recDir.create({ intermediates: true, idempotent: true });
-      }
-      const src = new File(uri);
-      const ext = src.extension || ".m4a";
-      const dest = new File(recDir, `${id}${ext}`);
-      if (dest.exists) dest.delete();
-      src.copy(dest);
-      persistentUri = dest.uri;
+      const recDir = `${FileSystem.documentDirectory}recordings/`;
+      await FileSystem.makeDirectoryAsync(recDir, { intermediates: true });
+      const dotIdx = uri.lastIndexOf(".");
+      const slashIdx = uri.lastIndexOf("/");
+      const ext = dotIdx > slashIdx ? uri.slice(dotIdx) : ".m4a";
+      const dest = `${recDir}${id}${ext}`;
+      await FileSystem.copyAsync({ from: uri, to: dest });
+      persistentUri = dest;
     } catch {
       // Do not persist the volatile cache uri — that would silently break
       // playback after the cache is purged. Keep the previous recording.
@@ -1053,12 +1051,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setRecordings((prev) => {
       const stored = prev[id];
       if (stored) {
-        try {
-          const f = new File(stored);
-          if (f.exists) f.delete();
-        } catch {
-          // Ignore missing/inaccessible files.
-        }
+        FileSystem.deleteAsync(stored, { idempotent: true }).catch(() => {});
       }
       const next = { ...prev };
       delete next[id];

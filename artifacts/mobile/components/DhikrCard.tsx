@@ -151,7 +151,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
             }
             soundRef.current = sound;
             registerCardSound(sound);
-            await sound.playAsync();
+            // Set status handler BEFORE playing to avoid missing finish events
             sound.setOnPlaybackStatusUpdate((status) => {
               if (status.isLoaded && status.didJustFinish) {
                 sound.unloadAsync();
@@ -168,7 +168,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
                 }
               }
             });
-            sound.playAsync();
+            await sound.playAsync();
           })
           .catch(() => {
             isPlayingRef.current = false;
@@ -292,7 +292,7 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
               />
             </TouchableOpacity>
             <Text style={[styles.micLabel, { color: isRecording ? redC : hasRecording ? primaryC : mutedC }]}>
-              {isRecording ? "اضغط للإيقاف" : "إستمع الي الذكر بصوتك"}
+              {isRecording ? "اضغط للإيقاف" : hasRecording ? "إعادة التسجيل" : "سجّل صوتك"}
             </Text>
           </Animated.View>
 
