@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "adhkar",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.adhkar.morningevening",
-      "versionCode": 21,
+      "versionCode": 22,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FBF3E0"
