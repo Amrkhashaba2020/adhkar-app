@@ -1081,7 +1081,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await soundRef.current.unloadAsync();
         soundRef.current = null;
       }
-      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        staysActiveInBackground: false,
+      });
       const { sound } = await Audio.Sound.createAsync(
         { uri },
         { shouldPlay: true },
@@ -1177,7 +1182,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else if (hasBundled) {
         try {
           if (soundRef.current) { await soundRef.current.unloadAsync(); soundRef.current = null; }
-          await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+            staysActiveInBackground: false,
+          });
           const { sound } = await Audio.Sound.createAsync(
             BUNDLED_AUDIO[dhikr.id],
             { shouldPlay: false },
