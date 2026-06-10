@@ -172,7 +172,7 @@ export function ControlBar() {
           const eveningDone = todayRecord?.evening ?? false;
           return (
             <View style={styles.todayWidget}>
-              <View style={[styles.todayItem, { backgroundColor: eveningDone ? "#000000" : borderC + "66" }]}>
+              <View style={[styles.todayItem, { backgroundColor: eveningDone ? "#000000" : "#444444" }]}>
                 <Icon name="moon-filled" size={13} color={eveningDone ? "#FFFFFF" : mutedC} />
                 <Text style={[styles.todayItemText, { color: eveningDone ? "#A5B4FC" : mutedC }]}>
                   {eveningDone ? "مكتمل" : "لم يكتمل"}
