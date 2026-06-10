@@ -65,6 +65,7 @@ export interface CompletionRecord {
 
 interface AppContextValue {
   adhkar: Dhikr[];
+  isLoaded: boolean;
   settings: AppSettings;
   activeCategory: Category;
   isPlayingAll: boolean;
@@ -739,6 +740,7 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [adhkar, setAdhkar] = useState<Dhikr[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [activeCategory, setActiveCategory] = useState<Category>("morning");
   const [isPlayingAll, setIsPlayingAll] = useState(false);
@@ -828,6 +830,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       } catch {
         setAdhkar([...DEFAULT_MORNING, ...DEFAULT_EVENING]);
+      } finally {
+        setIsLoaded(true);
       }
     })();
     return () => {
@@ -1363,6 +1367,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     <AppContext.Provider
       value={{
         adhkar,
+        isLoaded,
         settings,
         activeCategory,
         isPlayingAll,

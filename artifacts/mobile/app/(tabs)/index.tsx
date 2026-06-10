@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Platform,
   ScrollView,
   StyleSheet,
@@ -21,7 +22,7 @@ import {
 
 export default function MainScreen() {
   const insets = useSafeAreaInsets();
-  const { adhkar, settings, activeCategory, setActiveCategory, categoryResetKey } = useApp();
+  const { adhkar, isLoaded, settings, activeCategory, setActiveCategory, categoryResetKey } = useApp();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editItem, setEditItem] = useState<Dhikr | null>(null);
@@ -133,7 +134,11 @@ export default function MainScreen() {
         </View>
       </View>
 
-      {all.length === 0 ? (
+      {!isLoaded ? (
+        <View style={styles.empty}>
+          <ActivityIndicator size="large" color={primaryC} />
+        </View>
+      ) : all.length === 0 ? (
         <View style={styles.empty}>
           <Icon name="book-open" size={48} color={mutedC} />
           <Text style={[styles.emptyTitle, { color: textC }]}>
