@@ -95,7 +95,7 @@ export default function MainScreen() {
       : insets.bottom + 16;
 
   return (
-    <View style={[styles.root, { backgroundColor: bgC }]}>
+    <View style={[styles.root, { backgroundColor: "#FFFFFF" }]}>
       <ControlBar />
 
       <View style={[styles.segmentWrapper, { borderBottomColor: borderC }]}>
