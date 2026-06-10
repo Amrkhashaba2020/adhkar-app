@@ -18,7 +18,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_NO_TELEMETRY": "1"
+        "EXPO_NO_TELEMETRY": "1",
+        "EXPO_PUBLIC_DOMAIN": "cea789a6-9cee-49f0-b673-2e29ede2a6ed-00-1dc1nn3fb0znp.pike.replit.dev"
       }
     },
     "preview-universal": {
