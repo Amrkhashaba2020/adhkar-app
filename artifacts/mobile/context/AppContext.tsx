@@ -762,6 +762,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const playbackGenRef = useRef(0);
 
   useEffect(() => {
+    // Safety timeout — if AsyncStorage hangs, show defaults after 3 s.
+    const safetyTimer = setTimeout(() => {
+      setAdhkar((a) => (a.length > 0 ? a : [...DEFAULT_MORNING, ...DEFAULT_EVENING]));
+      setIsLoaded(true);
+    }, 3000);
+
     (async () => {
       try {
         const [storedAdhkar, storedSettings, storedRecordings, storedStats, storedHistory] =
@@ -835,6 +841,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     })();
     return () => {
+      clearTimeout(safetyTimer);
       soundRef.current?.unloadAsync();
     };
   }, []);

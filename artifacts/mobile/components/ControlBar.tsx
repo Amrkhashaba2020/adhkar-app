@@ -73,7 +73,11 @@ export function ControlBar() {
           },
         ]}
       >
-        <View style={styles.row}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.row}
+        >
           <TouchableOpacity
             onPress={() => updateSettings({ theme: theme === "day" ? "night" : "day" })}
             style={[styles.iconBtn, { borderColor: borderC }]}
@@ -162,7 +166,7 @@ export function ControlBar() {
           >
             <Icon name="calendar" size={16} color={mutedC} />
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
         {(() => {
           const today = new Date();
