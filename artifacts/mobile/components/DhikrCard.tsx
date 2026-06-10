@@ -201,9 +201,16 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
     if (isRecording) {
       setIsRecording(false);
       try {
-        const uri = recordingRef.current?.getURI();
-        await recordingRef.current?.stopAndUnloadAsync();
+        const uri = recordingRef.current?.getURI() ?? null;
+        await recordingRef.current?.stopAndUnloadAsync().catch(() => {});
         recordingRef.current = null;
+        // Restore playback audio mode after recording
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        }).catch(() => {});
         if (uri) {
           await saveRecording(item.id, uri);
         } else {
@@ -214,7 +221,11 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
       }
     } else {
       try {
-        // Check current permission status first (no dialog if already denied)
+        // Stop any playing audio before recording
+        await stopAllAudio();
+        stopDhikrSpeech();
+
+        // Request microphone permission
         const current = await Audio.getPermissionsAsync();
         let granted = current.granted;
         if (!granted && current.canAskAgain) {
@@ -228,16 +239,28 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
           );
           return;
         }
+
+        // Set audio mode for recording (Android + iOS)
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: true,
           playsInSilentModeIOS: true,
+          shouldDuckAndroid: false,
+          playThroughEarpieceAndroid: false,
+          staysActiveInBackground: false,
         });
+
         const { recording } = await Audio.Recording.createAsync(
-          Audio.RecordingOptionsPresets.HIGH_QUALITY
+          Audio.RecordingOptionsPresets.HIGH_QUALITY,
         );
         recordingRef.current = recording;
         setIsRecording(true);
       } catch (e) {
+        // Restore audio mode on failure
+        Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+        }).catch(() => {});
         Alert.alert("خطأ في التسجيل", String(e));
       }
     }
