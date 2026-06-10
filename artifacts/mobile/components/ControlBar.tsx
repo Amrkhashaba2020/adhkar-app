@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -31,6 +32,8 @@ function pad(n: number) { return n.toString().padStart(2, "0"); }
 
 export function ControlBar() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 600;
   const {
     settings,
     updateSettings,
@@ -74,9 +77,10 @@ export function ControlBar() {
         ]}
       >
         <ScrollView
-          horizontal
+          horizontal={!isTablet}
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.row}
+          scrollEnabled={!isTablet}
+          contentContainerStyle={[styles.row, isTablet && styles.rowTablet]}
         >
           <TouchableOpacity
             onPress={() => updateSettings({ theme: theme === "day" ? "night" : "day" })}
@@ -376,6 +380,13 @@ const styles = StyleSheet.create({
     gap: 6,
     flexWrap: "nowrap",
     justifyContent: "center",
+  },
+  rowTablet: {
+    gap: 10,
+    paddingHorizontal: 16,
+    flexWrap: "nowrap",
+    justifyContent: "center",
+    width: "100%",
   },
   iconBtn: {
     width: 36,
