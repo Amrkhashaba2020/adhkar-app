@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ControlBar } from "@/components/ControlBar";
@@ -22,6 +23,8 @@ import {
 
 export default function MainScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 600;
   const { adhkar, isLoaded, settings, activeCategory, setActiveCategory, categoryResetKey } = useApp();
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -100,37 +103,48 @@ export default function MainScreen() {
       <ControlBar />
 
       <View style={[styles.segmentWrapper, { borderBottomColor: borderC }]}>
-        <View style={[styles.segment, { backgroundColor: theme === "day" ? "#F5F5F5" : "#252540", direction: "ltr" }]}>
-          {(["evening", "morning"] as const).map((cat) => {
-            const isActive = activeCategory === cat;
-            return (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setActiveCategory(cat)}
-                style={[
-                  styles.segBtn,
-                  isActive && {
-                    backgroundColor: bgC,
-                    shadowColor: "#000",
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    shadowOffset: { width: 0, height: 1 },
-                    elevation: 2,
-                  },
-                ]}
-              >
-                <Text
+        <View style={[
+          styles.segmentOuter,
+          isTablet && { alignItems: "center" },
+        ]}>
+          <View style={[
+            styles.segment,
+            { backgroundColor: theme === "day" ? "#F5F5F5" : "#252540" },
+            isTablet && { width: 400 },
+          ]}>
+            {(["morning", "evening"] as const).map((cat) => {
+              const isActive = activeCategory === cat;
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  onPress={() => setActiveCategory(cat)}
                   style={[
-                    styles.segBtnText,
-                    { color: isActive ? primaryC : mutedC },
-                    isActive && styles.segBtnTextActive,
+                    styles.segBtn,
+                    isActive && {
+                      backgroundColor: bgC,
+                      shadowColor: "#000",
+                      shadowOpacity: 0.08,
+                      shadowRadius: 4,
+                      shadowOffset: { width: 0, height: 1 },
+                      elevation: 2,
+                    },
                   ]}
                 >
-                  {cat === "morning" ? "أذكار الصباح" : "أذكار المساء"}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={[
+                      styles.segBtnText,
+                      { color: isActive ? primaryC : mutedC },
+                      isActive && styles.segBtnTextActive,
+                    ]}
+                  >
+                    {cat === "morning" ? "أذكار الصباح" : "أذكار المساء"}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
       </View>
 
@@ -151,13 +165,18 @@ export default function MainScreen() {
       ) : (
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={[styles.list, { paddingBottom: bottomPad }]}
+          contentContainerStyle={[
+            styles.list,
+            { paddingBottom: bottomPad },
+            isTablet && { alignItems: "center" },
+          ]}
           showsVerticalScrollIndicator={false}
           scrollEnabled={!!filtered.length}
         >
           {displayList.map((item) => (
             <View
               key={item.id}
+              style={isTablet ? { width: Math.min(width * 0.72, 680) } : { width: "100%" }}
               onLayout={(e) => {
                 cardYRef.current.set(item.id, e.nativeEvent.layout.y);
               }}
@@ -199,6 +218,9 @@ const styles = StyleSheet.create({
     paddingTop: 4,
     paddingBottom: 6,
     borderBottomWidth: 1,
+  },
+  segmentOuter: {
+    width: "100%",
   },
   segment: {
     flexDirection: "row",
