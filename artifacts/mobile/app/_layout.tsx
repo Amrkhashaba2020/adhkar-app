@@ -11,6 +11,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Platform } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -21,6 +22,11 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+function KeepAwakeHandler() {
+  useKeepAwake();
+  return null;
+}
+
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -30,7 +36,6 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  useKeepAwake();
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -53,6 +58,7 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <AppProvider>
+                {Platform.OS !== "web" && <KeepAwakeHandler />}
                 <RootLayoutNav />
               </AppProvider>
             </KeyboardProvider>
