@@ -102,7 +102,7 @@ export function Icon({ name, size = 24, color = "#000" }: IconProps) {
     case "volume-2":
       return (
         <Svg width={size} height={size} viewBox="0 0 24 24">
-          <Polygon {...s} points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill={color} />
+          <Polygon {...s} points="11,5 6,9 2,9 2,15 6,15 11,19 11,5" fill={color} />
           <Path {...s} d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
         </Svg>
       );
