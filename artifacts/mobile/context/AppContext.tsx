@@ -1144,6 +1144,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (itemIndex >= list.length) {
         speakAllRef.current = false;
         setIsPlayingAll(false);
+        setSpeakingId(null);
         return;
       }
 
@@ -1158,8 +1159,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Highlight the current card
+      setSpeakingId(dhikr.id);
+
       const onPlayDone = () => {
-        if (!speakAllRef.current) { setIsPlayingAll(false); return; }
+        if (!speakAllRef.current) { setSpeakingId(null); setIsPlayingAll(false); return; }
         setAdhkar((prev) => {
           const next = prev.map((d) =>
             d.id === dhikr.id && d.currentCount > 0
@@ -1225,6 +1229,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .then(async ({ sound }) => {
             if (gen !== playbackGenRef.current || !speakAllRef.current) {
               await sound.unloadAsync().catch(() => {});
+              setSpeakingId(null);
               setIsPlayingAll(false);
               return;
             }
@@ -1233,13 +1238,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               if (status.isLoaded && status.didJustFinish) {
                 sound.unloadAsync();
                 soundRef.current = null;
-                if (!speakAllRef.current) { setIsPlayingAll(false); return; }
+                if (!speakAllRef.current) { setSpeakingId(null); setIsPlayingAll(false); return; }
                 onPlayDone();
               }
             });
             await sound.playAsync();
           })
           .catch(() => {
+            setSpeakingId(null);
             repeatsDone++;
             setTimeout(playNext, 200);
           });
@@ -1252,6 +1258,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const stopSpeaking = useCallback(() => {
     speakAllRef.current = false;
     setIsPlayingAll(false);
+    setSpeakingId(null);
     soundRef.current?.stopAsync();
   }, []);
 
