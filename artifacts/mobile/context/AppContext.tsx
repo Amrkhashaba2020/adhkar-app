@@ -758,6 +758,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const speakAllRef = useRef(false);
   const soundRef = useRef<Audio.Sound | null>(null);
   const ttsSoundRef = useRef<Audio.Sound | null>(null);
+  const playNextRef = useRef<(() => void) | null>(null);
   const cardSoundRef = useRef<Audio.Sound | null>(null);
   const playbackGenRef = useRef(0);
 
@@ -1132,6 +1133,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let repeatsDone = 0;
 
     const playNext = async () => {
+      playNextRef.current = playNext;
       if (!speakAllRef.current) {
         setIsPlayingAll(false);
         return;
@@ -1366,6 +1368,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await ttsSoundRef.current?.unloadAsync().catch(() => {});
     ttsSoundRef.current = null;
     setSpeakingId(null);
+    // If speakAll is playing the card that just faded, stop its sound and advance
+    if (speakAllRef.current && soundRef.current) {
+      const s = soundRef.current;
+      soundRef.current = null;
+      s.stopAsync().catch(() => {});
+      s.unloadAsync().catch(() => {});
+      setTimeout(() => playNextRef.current?.(), 100);
+    }
   }, []);
 
   const registerCardSound = useCallback((sound: Audio.Sound | null) => {
