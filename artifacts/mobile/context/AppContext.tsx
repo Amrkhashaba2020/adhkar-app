@@ -1136,8 +1136,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setIsPlayingAll(false);
         return;
       }
-      // Advance past fully-repeated dhikrs
-      while (itemIndex < list.length && repeatsDone >= counts[itemIndex]) {
+      // Advance past fully-repeated OR already-faded dhikrs
+      while (itemIndex < list.length) {
+        const liveCount = adhkarRef.current.find(d => d.id === list[itemIndex]!.id)?.currentCount ?? 0;
+        if (repeatsDone < counts[itemIndex]! && liveCount > 0) break;
         itemIndex++;
         repeatsDone = 0;
       }
