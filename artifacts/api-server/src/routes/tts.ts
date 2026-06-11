@@ -1,4 +1,6 @@
 import { Router, type IRouter } from "express";
+import { spawn } from "child_process";
+import ffmpegPath from "ffmpeg-static";
 
 const router: IRouter = Router();
 const memCache = new Map<string, Buffer>();
@@ -43,6 +45,26 @@ async function splitAndFetch(text: string): Promise<Buffer> {
   return Buffer.concat(bufs);
 }
 
+function pitchShiftToMale(input: Buffer): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const bin = ffmpegPath ?? "ffmpeg";
+    const ff = spawn(bin, [
+      "-f", "mp3", "-i", "pipe:0",
+      "-af", "asetrate=24000*0.75,aresample=24000,atempo=1.333",
+      "-codec:a", "libmp3lame", "-q:a", "3",
+      "-f", "mp3", "pipe:1",
+    ]);
+
+    const chunks: Buffer[] = [];
+    ff.stdout.on("data", (d: Buffer) => chunks.push(d));
+    ff.stdout.on("end", () => resolve(Buffer.concat(chunks)));
+    ff.stderr.on("data", () => {});
+    ff.on("error", reject);
+    ff.stdin.write(input);
+    ff.stdin.end();
+  });
+}
+
 router.get("/tts", async (req, res) => {
   try {
     const text = typeof req.query["text"] === "string" ? req.query["text"].trim() : "";
@@ -57,7 +79,8 @@ router.get("/tts", async (req, res) => {
       return;
     }
 
-    const audio = await splitAndFetch(text);
+    const raw = await splitAndFetch(text);
+    const audio = await pitchShiftToMale(raw);
 
     if (memCache.size > 300) {
       const key = memCache.keys().next().value;
