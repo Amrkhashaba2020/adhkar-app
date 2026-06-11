@@ -279,10 +279,14 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
         style={[
           styles.card,
           {
-            backgroundColor: cardC,
-            borderColor: isDone ? primaryC : borderC,
-            borderWidth: isDone ? 1.5 : 1,
+            backgroundColor: speakingId === item.id ? (theme === "day" ? "#F1F8F1" : "#1A2E1A") : cardC,
+            borderColor: speakingId === item.id ? primaryC : isDone ? primaryC : borderC,
+            borderWidth: speakingId === item.id ? 2 : isDone ? 1.5 : 1,
             opacity: isDone ? 0.65 : 1,
+            shadowColor: speakingId === item.id ? primaryC : "transparent",
+            shadowOpacity: speakingId === item.id ? 0.35 : 0,
+            shadowRadius: speakingId === item.id ? 8 : 0,
+            elevation: speakingId === item.id ? 6 : 0,
           },
         ]}
       >
@@ -382,10 +386,12 @@ export function DhikrCard({ item, onEdit, onFadeComplete }: Props) {
               <View
                 style={[
                   styles.countBadge,
-                  { backgroundColor: primaryC + "22", borderColor: primaryC + "44", borderWidth: 1 },
+                  speakingId === item.id
+                    ? { backgroundColor: primaryC, borderColor: primaryC, borderWidth: 1 }
+                    : { backgroundColor: primaryC + "22", borderColor: primaryC + "44", borderWidth: 1 },
                 ]}
               >
-                <Text style={[styles.countText, { color: primaryC }]}>
+                <Text style={[styles.countText, { color: speakingId === item.id ? "#fff" : primaryC }]}>
                   {item.currentCount}
                 </Text>
               </View>
