@@ -3,7 +3,6 @@ import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import * as Speech from "expo-speech";
 import React, {
   createContext,
   useCallback,
@@ -1116,7 +1115,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Stop any card/TTS playback before starting play-all
     const gen = ++playbackGenRef.current;
     ttsLoopRef.current = false;
-    Speech.stop();
     setSpeakingId(null);
     setPlayingCardId(null);
     [ttsSoundRef, cardSoundRef].forEach((r) => {
@@ -1215,20 +1213,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setTimeout(playNext, 200);
         }
       } else {
-        Speech.speak(dhikr.text, {
-          language: "ar",
-          onDone: () => {
+        const uri = `${TTS_BASE}?text=${encodeURIComponent(dhikr.text)}`;
+        Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+          staysActiveInBackground: false,
+        })
+          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: false }))
+          .then(async ({ sound }) => {
             if (gen !== playbackGenRef.current || !speakAllRef.current) {
+              await sound.unloadAsync().catch(() => {});
               setIsPlayingAll(false);
               return;
             }
-            onPlayDone();
-          },
-          onError: () => {
+            soundRef.current = sound;
+            sound.setOnPlaybackStatusUpdate((status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                sound.unloadAsync();
+                soundRef.current = null;
+                if (!speakAllRef.current) { setIsPlayingAll(false); return; }
+                onPlayDone();
+              }
+            });
+            await sound.playAsync();
+          })
+          .catch(() => {
             repeatsDone++;
             setTimeout(playNext, 200);
-          },
-        });
+          });
       }
     };
 
@@ -1238,7 +1252,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const stopSpeaking = useCallback(() => {
     speakAllRef.current = false;
     setIsPlayingAll(false);
-    Speech.stop();
     soundRef.current?.stopAsync();
   }, []);
 
@@ -1248,12 +1261,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (id: string, text: string, count?: number) => {
       if (speakingId === id) {
         ttsLoopRef.current = false;
-        Speech.stop();
+        await ttsSoundRef.current?.stopAsync().catch(() => {});
+        await ttsSoundRef.current?.unloadAsync().catch(() => {});
+        ttsSoundRef.current = null;
         setSpeakingId(null);
         return;
       }
       ttsLoopRef.current = false;
-      Speech.stop();
+      await ttsSoundRef.current?.stopAsync().catch(() => {});
+      await ttsSoundRef.current?.unloadAsync().catch(() => {});
+      ttsSoundRef.current = null;
       const gen = ++playbackGenRef.current;
       speakAllRef.current = false;
       setIsPlayingAll(false);
@@ -1265,6 +1282,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
       const remaining = { value: count ?? 1 };
       setSpeakingId(id);
       ttsLoopRef.current = true;
@@ -1275,39 +1293,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setSpeakingId(null);
           return;
         }
-        Speech.speak(text, {
-          language: "ar",
-          onDone: () => {
-            if (!ttsLoopRef.current || gen !== playbackGenRef.current) {
+        Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+          staysActiveInBackground: false,
+        })
+          .then(() => Audio.Sound.createAsync({ uri }, { shouldPlay: false }))
+          .then(async ({ sound }) => {
+            if (gen !== playbackGenRef.current || !ttsLoopRef.current) {
+              await sound.unloadAsync().catch(() => {});
               setSpeakingId(null);
               return;
             }
-            if (count !== undefined) {
-              setAdhkar((prev) => {
-                const next = prev.map((d) =>
-                  d.id === id && d.currentCount > 0
-                    ? { ...d, currentCount: d.currentCount - 1 }
-                    : d
-                );
-                AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
-                return next;
-              });
-              const item = adhkarRef.current.find((d) => d.id === id);
-              if (item) incrementDailyStats(item.category);
-            }
-            remaining.value -= 1;
-            if (remaining.value > 0 && ttsLoopRef.current) {
-              setTimeout(playOnce, 300);
-            } else {
-              ttsLoopRef.current = false;
-              setSpeakingId(null);
-            }
-          },
-          onError: () => {
+            ttsSoundRef.current = sound;
+            await sound.playAsync();
+            sound.setOnPlaybackStatusUpdate((status) => {
+              if (status.isLoaded && status.didJustFinish) {
+                sound.unloadAsync();
+                ttsSoundRef.current = null;
+                if (!ttsLoopRef.current || gen !== playbackGenRef.current) {
+                  setSpeakingId(null);
+                  return;
+                }
+                if (count !== undefined) {
+                  setAdhkar((prev) => {
+                    const next = prev.map((d) =>
+                      d.id === id && d.currentCount > 0
+                        ? { ...d, currentCount: d.currentCount - 1 }
+                        : d
+                    );
+                    AsyncStorage.setItem(ADHKAR_KEY, JSON.stringify(next));
+                    return next;
+                  });
+                  const item = adhkarRef.current.find((d) => d.id === id);
+                  if (item) incrementDailyStats(item.category);
+                }
+                remaining.value -= 1;
+                if (remaining.value > 0 && ttsLoopRef.current) {
+                  setTimeout(playOnce, 300);
+                } else {
+                  ttsLoopRef.current = false;
+                  setSpeakingId(null);
+                }
+              }
+            });
+          })
+          .catch(() => {
             ttsLoopRef.current = false;
             setSpeakingId(null);
-          },
-        });
+          });
       };
 
       playOnce();
@@ -1317,7 +1353,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const stopDhikrSpeech = useCallback(async () => {
     ttsLoopRef.current = false;
-    Speech.stop();
+    await ttsSoundRef.current?.stopAsync().catch(() => {});
+    await ttsSoundRef.current?.unloadAsync().catch(() => {});
+    ttsSoundRef.current = null;
     setSpeakingId(null);
   }, []);
 
@@ -1332,7 +1370,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     speakAllRef.current = false;
     setIsPlayingAll(false);
     ttsLoopRef.current = false;
-    Speech.stop();
     setSpeakingId(null);
     setPlayingCardId(null);
     const refs = [soundRef, ttsSoundRef, cardSoundRef];
