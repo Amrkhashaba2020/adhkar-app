@@ -109,10 +109,10 @@ export default function MainScreen() {
         ]}>
           <View style={[
             styles.segment,
-            { backgroundColor: theme === "day" ? "#F5F5F5" : "#252540" },
+            { backgroundColor: theme === "day" ? "#F5F5F5" : "#252540", direction: "ltr" },
             isTablet && { width: 400 },
           ]}>
-            {(["morning", "evening"] as const).map((cat) => {
+            {(["evening", "morning"] as const).map((cat) => {
               const isActive = activeCategory === cat;
               return (
                 <TouchableOpacity
