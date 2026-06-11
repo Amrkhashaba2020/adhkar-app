@@ -1,6 +1,9 @@
 import { Router, type IRouter } from "express";
 import { spawn } from "child_process";
-import ffmpegPath from "ffmpeg-static";
+import { createRequire } from "node:module";
+
+const _require = createRequire(import.meta.url);
+const ffmpegPath: string = (_require("ffmpeg-static") as string) ?? "ffmpeg";
 
 const router: IRouter = Router();
 const memCache = new Map<string, Buffer>();
