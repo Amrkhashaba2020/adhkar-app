@@ -83,7 +83,12 @@ router.get("/tts", async (req, res) => {
     }
 
     const raw = await splitAndFetch(text);
-    const audio = await pitchShiftToMale(raw);
+    let audio: Buffer;
+    try {
+      audio = await pitchShiftToMale(raw);
+    } catch {
+      audio = raw;
+    }
 
     if (memCache.size > 300) {
       const key = memCache.keys().next().value;
