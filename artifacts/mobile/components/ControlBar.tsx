@@ -216,7 +216,7 @@ export function ControlBar() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll} contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
               <View style={[styles.section, { backgroundColor: sectionBg, borderColor: borderC }]}>
                 <Text style={[styles.sectionTitle, { color: mutedC }]}>التذكيرات اليومية</Text>
 
@@ -357,7 +357,6 @@ export function ControlBar() {
                 </TouchableOpacity>
               </View>
 
-              <View style={{ height: 40 }} />
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -438,7 +437,7 @@ const styles = StyleSheet.create({
   modalSheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "85%",
+    maxHeight: "92%",
     shadowColor: "#000",
     shadowOpacity: 0.3,
     shadowRadius: 20,
