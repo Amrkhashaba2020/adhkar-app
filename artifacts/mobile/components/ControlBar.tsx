@@ -51,12 +51,12 @@ export function ControlBar() {
 
   const { theme, bgColor, fontSize } = settings;
   const textC = TEXT_COLORS[theme];
-  const barBg = theme === "day" ? "rgba(255,255,255,0.97)" : "rgba(12,14,24,0.97)";
+  const barBg = theme === "day" ? "rgba(255,255,255,0.97)" : "rgba(0,0,0,0.97)";
   const borderC = theme === "day" ? "#E5E7EB" : "#2A2D3E";
   const primaryC = theme === "day" ? "#2E7D32" : "#4CAF50";
   const mutedC = theme === "day" ? "#9CA3AF" : "#6B7280";
-  const modalBg = theme === "day" ? "#FFFFFF" : "#131520";
-  const sectionBg = theme === "day" ? "#F9FAFB" : "#1C1F2E";
+  const modalBg = theme === "day" ? "#FFFFFF" : "#000000";
+  const sectionBg = theme === "day" ? "#F9FAFB" : "#1A1A1A";
 
   const topPad = Platform.OS === "web" ? Math.max(insets.top, 8) : insets.top;
 
