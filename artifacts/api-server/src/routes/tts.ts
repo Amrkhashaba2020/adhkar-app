@@ -1,7 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { Router, type IRouter } from "express";
 import rateLimit from "express-rate-limit";
-import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 
 const router: IRouter = Router();
 
@@ -13,10 +12,6 @@ const TOKEN_MAX_FUTURE_MS = 120_000;
 
 const memCache = new Map<string, Buffer>();
 let memCacheBytes = 0;
-
-const AZURE_KEY = process.env["AZURE_SPEECH_KEY"] ?? "";
-const AZURE_REGION = process.env["AZURE_SPEECH_REGION"] ?? "uaenorth";
-const AZURE_VOICE = "ar-SA-HamedNeural";
 
 // Signing secret is generated at process startup and kept in memory only.
 // It is never written to disk or committed to version control.
@@ -59,87 +54,6 @@ function verifyToken(token: string, expiresAt: number): boolean {
   } catch {
     return false;
   }
-}
-
-function fixArabicPronunciation(text: string): string {
-  // الترتيب الصحيح: شدة (U+0651) ثم فتحة (U+064E) على اللام، كسرة (U+0650) على الهاء
-  // اللَّهِ = ا + ل + ل + ّ + َ + ه + ِ
-  const ALLAH = "\u0627\u0644\u0644\u0651\u064E\u0647\u0650";
-  return text.replace(/الله/g, ALLAH);
-}
-
-async function azureTTS(text: string): Promise<Buffer> {
-  const endpoint = `https://${AZURE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`;
-  const processed = fixArabicPronunciation(text);
-  const ssml = `<speak version='1.0' xml:lang='ar-SA'>
-    <voice name='${AZURE_VOICE}'>
-      <prosody rate='-10%'>${processed.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</prosody>
-    </voice>
-  </speak>`;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
-
-  try {
-    const resp = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Ocp-Apim-Subscription-Key": AZURE_KEY,
-        "Content-Type": "application/ssml+xml",
-        "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3",
-        "User-Agent": "adhkar-app",
-      },
-      body: ssml,
-      signal: controller.signal,
-    });
-
-    if (!resp.ok) {
-      const body = await resp.text();
-      throw new Error(`Azure TTS ${resp.status}: ${body}`);
-    }
-    return Buffer.from(await resp.arrayBuffer());
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function azureTTSChunked(text: string): Promise<Buffer> {
-  const maxLen = 2000;
-  if (text.length <= maxLen) return azureTTS(text);
-
-  const parts: string[] = [];
-  const sep = /[،,؛;.\n]/;
-  let rem = text;
-  while (rem.length > maxLen) {
-    let idx = -1;
-    for (let i = maxLen; i >= 100; i--) {
-      if (sep.test(rem[i] ?? "")) { idx = i + 1; break; }
-    }
-    if (idx === -1) idx = maxLen;
-    parts.push(rem.slice(0, idx).trim());
-    rem = rem.slice(idx).trim();
-  }
-  if (rem) parts.push(rem);
-
-  const bufs: Buffer[] = [];
-  for (const part of parts.filter(Boolean)) {
-    bufs.push(await azureTTS(part));
-  }
-  return Buffer.concat(bufs);
-}
-
-async function edgeTTS(text: string): Promise<Buffer> {
-  const tts = new MsEdgeTTS();
-  await tts.setMetadata("ar-SA-HamedNeural", OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
-  const processed = fixArabicPronunciation(text);
-  const { audioStream } = tts.toStream(processed);
-  return new Promise<Buffer>((resolve, reject) => {
-    const chunks: Buffer[] = [];
-    audioStream.on("data", (chunk: Buffer) => chunks.push(chunk));
-    audioStream.on("end", () => resolve(Buffer.concat(chunks)));
-    audioStream.on("error", reject);
-    setTimeout(() => reject(new Error("Edge TTS timeout")), UPSTREAM_TIMEOUT_MS);
-  });
 }
 
 async function googleTTS(text: string): Promise<Buffer> {
@@ -227,18 +141,7 @@ router.get("/tts", ttsRateLimit, async (req, res) => {
       return;
     }
 
-    let audio: Buffer;
-
-    if (AZURE_KEY) {
-      try {
-        audio = await azureTTSChunked(text);
-      } catch (azureErr) {
-        req.log?.warn({ err: azureErr }, "Azure TTS failed, falling back to Google TTS");
-        audio = await googleTTS(text);
-      }
-    } else {
-      audio = await googleTTS(text);
-    }
+    const audio = await googleTTS(text);
 
     evictCache(audio.length);
     memCache.set(text, audio);
