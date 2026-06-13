@@ -62,7 +62,10 @@ function verifyToken(token: string, expiresAt: number): boolean {
 
 function fixArabicPronunciation(text: string): string {
   return text
-    // حروف الجر تأتي أولاً — الهاء مجرورة فتأخذ كسرة
+    // تركيبات مضاف إليه شائعة — الهاء مجرورة فتأخذ كسرة (تأتي أولاً قبل القاعدة العامة)
+    .replace(/سبحان الله/g, "سُبْحَانَ اللَّهِ")
+    .replace(/بسم الله/g, "بِسْمِ اللَّهِ")
+    // حروف الجر — الهاء مجرورة فتأخذ كسرة
     .replace(/بالله/g, "باللَّهِ")
     .replace(/تالله/g, "تَاللَّهِ")
     // والله — الهاء مرفوعة فتأخذ ضمة
