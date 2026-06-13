@@ -233,21 +233,11 @@ router.get("/tts", ttsRateLimit, async (req, res) => {
       try {
         audio = await azureTTSChunked(text);
       } catch (azureErr) {
-        req.log?.warn({ err: azureErr }, "Azure TTS failed, falling back to Edge TTS");
-        try {
-          audio = await edgeTTS(text);
-        } catch (edgeErr) {
-          req.log?.warn({ err: edgeErr }, "Edge TTS failed, falling back to Google TTS");
-          audio = await googleTTS(text);
-        }
-      }
-    } else {
-      try {
-        audio = await edgeTTS(text);
-      } catch (edgeErr) {
-        req.log?.warn({ err: edgeErr }, "Edge TTS failed, falling back to Google TTS");
+        req.log?.warn({ err: azureErr }, "Azure TTS failed, falling back to Google TTS");
         audio = await googleTTS(text);
       }
+    } else {
+      audio = await googleTTS(text);
     }
 
     evictCache(audio.length);
