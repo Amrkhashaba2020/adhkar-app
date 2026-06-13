@@ -125,6 +125,9 @@ const PRIVACY_HTML = `<!DOCTYPE html>
 
 const app: Express = express();
 
+// Required for express-rate-limit to work correctly behind Replit's reverse proxy
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
