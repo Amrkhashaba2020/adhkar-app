@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.adhkar.morningevening",
-      "versionCode": 23,
+      "versionCode": 24,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FBF3E0"
