@@ -19,7 +19,7 @@
     },
     "android": {
       "package": "com.adhkar.morningevening",
-      "versionCode": 24,
+      "versionCode": 25,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FBF3E0"
@@ -31,8 +31,8 @@
         "android.permission.VIBRATE",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "enableProguardInReleaseBuilds": false,
-      "enableShrinkResourcesInReleaseBuilds": false
+      "enableProguardInReleaseBuilds": true,
+      "enableShrinkResourcesInReleaseBuilds": true
     },
     "web": {
       "favicon": "./assets/images/icon.png"
