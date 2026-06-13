@@ -61,19 +61,8 @@ function verifyToken(token: string, expiresAt: number): boolean {
 }
 
 function fixArabicPronunciation(text: string): string {
-  return text
-    // تركيبات مضاف إليه شائعة — الهاء مجرورة فتأخذ كسرة (تأتي أولاً قبل القاعدة العامة)
-    .replace(/سبحان الله/g, "سُبْحَانَ اللَّهِ")
-    .replace(/بسم الله/g, "بِسْمِ اللَّهِ")
-    // حروف الجر — الهاء مجرورة فتأخذ كسرة
-    .replace(/بالله/g, "باللَّهِ")
-    .replace(/تالله/g, "تَاللَّهِ")
-    // والله — الهاء مرفوعة فتأخذ ضمة
-    .replace(/والله/g, "واللَّهُ")
-    // لفظ الجلالة المجرد — شدة على اللام + ضمة على الهاء
-    .replace(/الله/g, "اللَّهُ")
-    // لله (حرف الجر لام) — الهاء مجرورة فتأخذ كسرة
-    .replace(/لله/g, "لِلَّهِ");
+  // لا نتدخل في نطق لفظ الجلالة — ar-SA-HamedNeural يعرف نطقه بشكل صحيح تلقائياً
+  return text;
 }
 
 async function azureTTS(text: string): Promise<Buffer> {
