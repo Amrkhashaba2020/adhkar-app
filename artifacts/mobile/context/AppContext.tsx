@@ -928,6 +928,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const resetCategory = useCallback(
     (category: Category) => {
+      // Stop all audio immediately
+      speakAllRef.current = false;
+      ttsLoopRef.current = false;
+      playbackGenRef.current += 1;
+      setIsPlayingAll(false);
+      setSpeakingId(null);
+      setPlayingCardId(null);
+      for (const r of [soundRef, ttsSoundRef, cardSoundRef]) {
+        if (r.current) {
+          r.current.stopAsync().catch(() => {});
+          r.current.unloadAsync().catch(() => {});
+          r.current = null;
+        }
+      }
+
       setCategoryResetKey((k) => k + 1);
       setAdhkar((prev) => {
         const next = prev.map((d) => {
