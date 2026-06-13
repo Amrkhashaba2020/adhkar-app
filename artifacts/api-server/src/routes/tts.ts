@@ -17,7 +17,7 @@ function fixArabicPronunciation(text: string): string {
     // لفظ الجلالة المجرد — شدة على اللام + ضمة على الهاء
     .replace(/الله/g, "اللَّهُ")
     // لله (حرف الجر لام) — الهاء مجرورة فتأخذ كسرة
-    .replace(/لله/g, "للَّهِ");
+    .replace(/لله/g, "لِلَّهِ");
 }
 
 async function azureTTS(text: string): Promise<Buffer> {
