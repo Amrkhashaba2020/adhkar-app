@@ -99,7 +99,7 @@ export default function MainScreen() {
       : insets.bottom + 16;
 
   return (
-    <View style={[styles.root, { backgroundColor: "#FFFFFF" }]}>
+    <View style={[styles.root, { backgroundColor: bgC }]}>
       <ControlBar />
 
       <View style={[styles.segmentWrapper, { borderBottomColor: borderC }]}>
@@ -109,7 +109,7 @@ export default function MainScreen() {
         ]}>
           <View style={[
             styles.segment,
-            { backgroundColor: theme === "day" ? "#F5F5F5" : "#252540", direction: "ltr" },
+            { backgroundColor: theme === "day" ? "#F5F5F5" : "#1A1A1A", direction: "ltr" },
             isTablet && { width: 400 },
           ]}>
             {(["evening", "morning"] as const).map((cat) => {
