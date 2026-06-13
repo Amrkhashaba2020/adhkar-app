@@ -9,16 +9,10 @@ const AZURE_VOICE = "ar-SA-HamedNeural";
 
 function fixArabicPronunciation(text: string): string {
   return text
-    // لفظ الجلالة — إضافة الشدة على اللام لضمان النطق الصحيح المفخم
-    .replace(/الله/g, "اللَّه")
-    // لله (مع حرف الجر)
-    .replace(/لله/g, "للَّه")
-    // بالله
-    .replace(/بالله/g, "باللَّه")
-    // والله
-    .replace(/والله/g, "واللَّه")
-    // تالله
-    .replace(/تالله/g, "تاللَّه");
+    // لفظ الجلالة — شدة على اللام + ضمة على الهاء
+    .replace(/الله/g, "اللَّهُ")
+    // لله (مع حرف الجر) — كسرة على الهاء لأنها مجرورة
+    .replace(/لله/g, "لِلَّهِ");
 }
 
 async function azureTTS(text: string): Promise<Buffer> {
