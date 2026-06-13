@@ -413,6 +413,7 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 7,
     justifyContent: "center",
+    direction: "rtl",
   },
   todayItem: {
     flexDirection: "row",
