@@ -61,8 +61,8 @@ function verifyToken(token: string, expiresAt: number): boolean {
 }
 
 function fixArabicPronunciation(text: string): string {
-  // لا نتدخل في نطق لفظ الجلالة — ar-SA-HamedNeural يعرف نطقه بشكل صحيح تلقائياً
-  return text;
+  // إضافة الشدة على اللام فقط — تخبر Azure بأن اللام مشددة دون إجبار حركة نهاية معينة
+  return text.replace(/الله/g, "اللَّه");
 }
 
 async function azureTTS(text: string): Promise<Buffer> {
