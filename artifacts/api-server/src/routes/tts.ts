@@ -61,8 +61,10 @@ function verifyToken(token: string, expiresAt: number): boolean {
 }
 
 function fixArabicPronunciation(text: string): string {
-  // إضافة الشدة على اللام فقط — تخبر Azure بأن اللام مشددة دون إجبار حركة نهاية معينة
-  return text.replace(/الله/g, "اللَّه");
+  // الترتيب الصحيح: شدة (U+0651) ثم فتحة (U+064E) على اللام، كسرة (U+0650) على الهاء
+  // اللَّهِ = ا + ل + ل + ّ + َ + ه + ِ
+  const ALLAH = "\u0627\u0644\u0644\u0651\u064E\u0647\u0650";
+  return text.replace(/الله/g, ALLAH);
 }
 
 async function azureTTS(text: string): Promise<Buffer> {
