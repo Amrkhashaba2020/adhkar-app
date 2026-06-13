@@ -15,6 +15,14 @@ import { Platform } from "react-native";
 
 const TTS_BASE = `https://${process.env["EXPO_PUBLIC_DOMAIN"]}/api/tts`;
 
+async function fetchTtsUri(text: string): Promise<string> {
+  const tokenResp = await fetch(`${TTS_BASE}/token`);
+  if (!tokenResp.ok) throw new Error(`TTS token request failed: ${tokenResp.status}`);
+  const { token, expiresAt } = (await tokenResp.json()) as { token: string; expiresAt: number };
+  const params = new URLSearchParams({ text, token, expiresAt: String(expiresAt) });
+  return `${TTS_BASE}?${params.toString()}`;
+}
+
 export const BUNDLED_AUDIO: Record<string, number> = {
   m1: require("../assets/audio/ayatul-kursi.mp3"),
   m2: require("../assets/audio/al-ikhlas.mp3"),
@@ -1221,7 +1229,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setTimeout(playNext, 200);
         }
       } else {
-        const uri = `${TTS_BASE}?text=${encodeURIComponent(dhikr.text)}`;
+        const uri = await fetchTtsUri(dhikr.text);
         Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
           playsInSilentModeIOS: true,
@@ -1293,7 +1301,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const uri = `${TTS_BASE}?text=${encodeURIComponent(text)}`;
+      const uri = await fetchTtsUri(text);
       const remaining = { value: count ?? 1 };
       setSpeakingId(id);
       ttsLoopRef.current = true;
