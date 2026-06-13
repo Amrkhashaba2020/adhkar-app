@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { Router, type IRouter } from "express";
 import rateLimit from "express-rate-limit";
+import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 
 const router: IRouter = Router();
 
@@ -127,6 +128,20 @@ async function azureTTSChunked(text: string): Promise<Buffer> {
   return Buffer.concat(bufs);
 }
 
+async function edgeTTS(text: string): Promise<Buffer> {
+  const tts = new MsEdgeTTS();
+  await tts.setMetadata("ar-SA-HamedNeural", OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);
+  const processed = fixArabicPronunciation(text);
+  const { audioStream } = tts.toStream(processed);
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    audioStream.on("data", (chunk: Buffer) => chunks.push(chunk));
+    audioStream.on("end", () => resolve(Buffer.concat(chunks)));
+    audioStream.on("error", reject);
+    setTimeout(() => reject(new Error("Edge TTS timeout")), UPSTREAM_TIMEOUT_MS);
+  });
+}
+
 async function googleTTS(text: string): Promise<Buffer> {
   const chunk = text.slice(0, 180);
   const url =
@@ -218,11 +233,21 @@ router.get("/tts", ttsRateLimit, async (req, res) => {
       try {
         audio = await azureTTSChunked(text);
       } catch (azureErr) {
-        req.log?.warn({ err: azureErr }, "Azure TTS failed, falling back to Google TTS");
-        audio = await googleTTS(text);
+        req.log?.warn({ err: azureErr }, "Azure TTS failed, falling back to Edge TTS");
+        try {
+          audio = await edgeTTS(text);
+        } catch (edgeErr) {
+          req.log?.warn({ err: edgeErr }, "Edge TTS failed, falling back to Google TTS");
+          audio = await googleTTS(text);
+        }
       }
     } else {
-      audio = await googleTTS(text);
+      try {
+        audio = await edgeTTS(text);
+      } catch (edgeErr) {
+        req.log?.warn({ err: edgeErr }, "Edge TTS failed, falling back to Google TTS");
+        audio = await googleTTS(text);
+      }
     }
 
     evictCache(audio.length);
