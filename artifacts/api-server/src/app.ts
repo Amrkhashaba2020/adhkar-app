@@ -155,7 +155,15 @@ const allowedOrigins: string[] = (process.env["REPLIT_DOMAINS"] ?? "")
 
 app.use(
   cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+    origin: (origin, cb) => {
+      // Allow requests with no origin (native mobile, curl, etc.)
+      if (!origin) return cb(null, true);
+      // Allow Replit dev domains (preview + Expo Go web preview)
+      if (origin.endsWith(".replit.dev") || origin.endsWith(".pike.replit.dev")) return cb(null, true);
+      // Allow configured production domains
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      cb(null, false);
+    },
     methods: ["GET", "HEAD", "OPTIONS"],
   }),
 );
