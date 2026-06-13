@@ -1460,9 +1460,9 @@ export const BG_COLORS: Record<string, Record<BgColorKey, string>> = {
     mint: "#F0F9F0",
   },
   night: {
-    white: "#0F1117",
-    cream: "#1A150A",
-    mint: "#081208",
+    white: "#000000",
+    cream: "#000000",
+    mint: "#000000",
   },
 };
 
@@ -1478,8 +1478,8 @@ export const CARD_COLORS: Record<string, Record<BgColorKey, string>> = {
     mint: "#E8F5E8",
   },
   night: {
-    white: "#1C1F2E",
-    cream: "#221C0E",
-    mint: "#0E1F0E",
+    white: "#1A1A1A",
+    cream: "#1A1A1A",
+    mint: "#1A1A1A",
   },
 };
